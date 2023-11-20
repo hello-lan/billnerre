@@ -1,0 +1,5 @@
+*.pyc
+*.pth
+*.log
+*.txt
+*.char
