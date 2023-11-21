@@ -2,7 +2,7 @@ import torch as t
 import torch.nn as nn
 from torchcrf import CRF
 
-from .basic_module import BasicModule
+from .basic_module import BasicModule,BasicModuleV2
 
 
 class SpatialDropout(nn.Dropout2d):
@@ -18,10 +18,10 @@ class SpatialDropout(nn.Dropout2d):
         return x
 
 
-class BiLSTM_CRF2(BasicModule):
+class BiLSTM_CRF(BasicModuleV2):
     def __init__(self,vocab_size,embedding_size,hidden_size,
                  label_size,drop_p = 0.1):
-        super(BiLSTM_CRF2, self).__init__()
+        super(BiLSTM_CRF, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_size)
         self.bilstm = nn.LSTM(input_size=embedding_size,
                               hidden_size=hidden_size,
@@ -58,22 +58,20 @@ class BiLSTM_CRF2(BasicModule):
          return tags
 
 
-class BiLSTM_CRF3(BasicModule):
+class BiLSTM_CRF2(BasicModule):
     def __init__(self,vocab_size,embedding_size,hidden_size,
                  label_size,drop_p = 0.1):
-        super(BiLSTM_CRF3, self).__init__()
+        super(BiLSTM_CRF2, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_size)
         self.bilstm_01 = nn.LSTM(input_size=embedding_size,
                               hidden_size=hidden_size,
                               batch_first=True,
                               num_layers=1,
-                              dropout=drop_p,
                               bidirectional=True)
         self.bilstm_02 = nn.LSTM(input_size=hidden_size * 2,
                               hidden_size=hidden_size,
                               batch_first=True,
                               num_layers=1,
-                              dropout=drop_p,
                               bidirectional=True)
         self.dropout = SpatialDropout(drop_p)
         self.layer_norm = nn.LayerNorm(hidden_size * 2)

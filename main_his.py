@@ -5,7 +5,7 @@ import torch as t
 import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
-from models.bilstm_crf_v0 import BiLSTM_CRF
+from models.baseline import BiLSTM_CRF
 from config import Config
 from utils.file_io import load_json
 from utils.metric import SeqEntityScore
