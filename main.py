@@ -11,7 +11,7 @@ from config import Config
 from utils.file_io import load_json
 from utils.metric import SeqEntityScore
 from utils.logger import logger, init_logger
-from utils import get_or_build_vocab, load_pretrained_embedding, DatasetLoader, ProgressBar, AverageMeter
+from utils import get_or_build_vocab, load_pretrained_vocab_embedding, DatasetLoader, ProgressBar, AverageMeter
 from utils.mix import get_entities
 
 
@@ -140,7 +140,7 @@ def main(task, model, gpu, pretrained):
     if pretrained:
         # pretrained_dir = "data/pretrained_embedding/sgns_weibo"
         pretrained_dir = "data/pretrained_embedding/tencent"
-        vocab, embedding = load_pretrained_embedding(pretrained_dir)
+        vocab, embedding = load_pretrained_vocab_embedding(pretrained_dir)
         conf.embeding_size= embedding.shape[1]
     else:
         vocab = get_or_build_vocab(conf)
@@ -170,7 +170,7 @@ def main(task, model, gpu, pretrained):
     if task == "eval":
         pass
     if task == "predict":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231121_old.pth")
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231121.pth")
         predict(ner_model, vocab, conf)
 
 
