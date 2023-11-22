@@ -1,5 +1,19 @@
+import os
 import random
+
 import torch
+import numpy as np
+from .vocabulary import Vocabulary
+
+
+
+def load_pretrained_vocab_embedding(pretrained_dir):
+    vocab_path = os.path.join(pretrained_dir,"vocab.pkl")
+    embedding_path = os.path.join(pretrained_dir,"embedding.npy")
+
+    vocab = Vocabulary.load_from_file(vocab_path)
+    embedding = np.load(embedding_path)   
+    return vocab, embedding
 
 
 class DatasetLoader(object):
@@ -74,4 +88,5 @@ class DatasetLoader(object):
         label_ids = self.get_long_tensor(batch[1], batch_size)
         input_lens = [len(x) for x in batch[0]]
         return (input_ids, input_mask, label_ids, input_lens)
+    
     

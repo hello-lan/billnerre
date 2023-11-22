@@ -138,11 +138,13 @@ def main(task, model, gpu, pretrained):
 
     # 是否使用预训练词向量
     if pretrained:
+        click.echo("读取预训练词向量...")
         # pretrained_dir = "data/pretrained_embedding/sgns_weibo"
         pretrained_dir = "data/pretrained_embedding/tencent"
         vocab, embedding = load_pretrained_vocab_embedding(pretrained_dir)
         conf.embeding_size= embedding.shape[1]
     else:
+        click.echo("加载或创建vocabulary...")
         vocab = get_or_build_vocab(conf)
 
     if task == "train":
@@ -159,12 +161,14 @@ def main(task, model, gpu, pretrained):
     
         if pretrained:
             # 加载预训练词向量
+            click.echo("加载预训练词向量到模型...")
             ner_model.load_pre_train_embedding(embedding)
 
 
         log_path = os.path.join(conf.cache_dir, f'{model}-train.log')
         init_logger(log_file=log_path)
         # ner_model.to(device)
+        click.echo("模型训练...")
         train(ner_model, vocab, conf)
 
     if task == "eval":

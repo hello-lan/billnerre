@@ -153,12 +153,3 @@ def get_or_build_vocab(conf):
         vocab = builder.build_vocab()
         vocab.save(vocab_path)
     return vocab
-
-
-def load_pretrained_vocab_embedding(pretrained_dir):
-    vocab_path = os.path.join(pretrained_dir,"vocab.pkl")
-    embedding_path = os.path.join(pretrained_dir,"embedding.npy")
-
-    vocab = Vocabulary.load_from_file(vocab_path)
-    embedding = np.load(embedding_path)   
-    return vocab, embedding
