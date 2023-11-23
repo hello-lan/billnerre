@@ -34,10 +34,6 @@ class BiLSTM_CRF(BasicModuleV2):
         self.classifier = nn.Linear(hidden_size * 2, label_size)
         self.crf = CRF(label_size,batch_first=True)
 
-    def load_pre_train_embedding(self, pretrained_embeddings):
-        self.embedding.weight.data.copy_(t.from_numpy(pretrained_embeddings))
-        self.embedding.weight.requires_grad = False
-
     def forward(self, inputs_ids, input_mask):
         embs = self.embedding(inputs_ids)
         embs = self.dropout(embs)    # output: batch * seq * vocab

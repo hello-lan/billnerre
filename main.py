@@ -162,7 +162,7 @@ def main(task, model, gpu, pretrained):
         if pretrained:
             # 加载预训练词向量
             click.echo("加载预训练词向量到模型...")
-            ner_model.load_pre_train_embedding(embedding)
+            ner_model.load_pretrained_embedding(embedding)
 
 
         log_path = os.path.join(conf.cache_dir, f'{model}-train.log')
@@ -174,7 +174,7 @@ def main(task, model, gpu, pretrained):
     if task == "eval":
         pass
     if task == "predict":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231121.pth")
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231122.pth")
         predict(ner_model, vocab, conf)
 
 
