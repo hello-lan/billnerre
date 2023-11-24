@@ -1,55 +1,47 @@
 labels = [
          'O',
-         'B-address',
-         'B-book',
-         'B-company',
-         'B-game',
-         'B-government',
-         'B-movie',
-         'B-name',
-         'B-organization',
-         'B-position',
-         'B-scene',
-         'I-address',
-         'I-book',
-         'I-company',
-         'I-game',
-         'I-government',
-         'I-movie',
-         'I-name',
-         'I-organization',
-         'I-position',
-         'I-scene',
-         'S-address',
-         'S-book',
-         'S-company',
-         'S-game',
-         'S-government',
-         'S-movie',
-         'S-name',
-         'S-organization',
-         'S-position',
-         'S-scene',
-         '<START>',
-         '<STOP>'
+         'B-发布者所属机构',
+         'B-票据期限',
+         'B-承兑人',
+         'B-贴现人',
+         'B-利率',
+         'B-承接业务',
+         'B-金额',
+         'B-票据种类',
+         'I-发布者所属机构',
+         'I-票据期限',
+         'I-承兑人',
+         'I-贴现人',
+         'I-利率',
+         'I-承接业务',
+         'I-金额',
+         'I-票据种类',
+         'S-发布者所属机构',
+         'S-票据期限',
+         'S-承兑人',
+         'S-贴现人',
+         'S-利率',
+         'S-承接业务',
+         'S-金额',
+         'S-票据种类',
          ]
 
 
 class Config:
     # 文件路径
-    train_data_path = 'data/corpus/train_processed.json'
-    eval_data_path = 'data/corpus/dev_processed.json'
-    vocab_path = 'data/vocab.pkl'
+    train_data_path = 'data/corpus_msg/train_processed.json'
+    eval_data_path = 'data/corpus_msg/dev_processed.json'
+    vocab_path = 'data/vocab_msg.pkl'
     cache_dir = 'cache'
 
     markup = 'bios'
 
     # 训练参数
     seed = 2023
-    batch_size = 32
+    batch_size = 15
     lr = 0.001
     lr_decay = 0
-    epochs = 5
+    epochs = 20
     grad_norm = 5
 
     # 模型参数

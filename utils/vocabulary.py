@@ -137,9 +137,9 @@ class VocabularyBuilder(object):
         self.word_counter.clear()
 
         
-def get_or_build_vocab(conf):
+def get_or_build_vocab(conf, rebuild=False):
     vocab_path = conf.vocab_path
-    if os.path.exists(vocab_path):
+    if os.path.exists(vocab_path) and not rebuild:
         print("load_vocab....")
         vocab = Vocabulary.load_from_file(vocab_path)
     else:

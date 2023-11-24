@@ -60,7 +60,7 @@ def train(model, vocab, conf):
 
             print("Eval Entity Score: ")
             for key, value in class_info.items():
-                info = f"Subject: {key} - Acc: {value['acc']} - Recall: {value['recall']} - F1: {value['f1']}"
+                info = f"Subject: {key} - Precision: {value['precision']} - Recall: {value['recall']} - F1: {value['f1']}"
                 logger.info(info)
 
 
@@ -126,10 +126,11 @@ def predict(model,vocab,conf):
 
 @click.command()
 @click.option('-t', '--task', type=click.Choice(['train', 'eval','predict']),default='train', help='任务')
+@click.option("--revocab", is_flag=True, help="是否重新创建vocablary")
 @click.option('--pretrained', is_flag=True, help='使用预训练词向量')
 @click.option('-m', "--model", type=click.Choice(['bilstm_crf']), default='bilstm_crf', help="模型", show_default=True)
 @click.option('--gpu', type=int, default=None, help='GPU')
-def main(task, model, gpu, pretrained):
+def main(task, model, gpu, pretrained,revocab):
     if isinstance(gpu, int):
         device = t.device(f"cuda:{gpu}")
     else:
@@ -145,15 +146,10 @@ def main(task, model, gpu, pretrained):
         conf.embeding_size= embedding.shape[1]
     else:
         click.echo("加载或创建vocabulary...")
-        vocab = get_or_build_vocab(conf)
+        vocab = get_or_build_vocab(conf,rebuild=revocab)
 
     if task == "train":
-        # ner_model = BiLSTM_CRF(vocab_size=len(vocab),
-        #                        embedding_size=conf.embeding_size,
-        #                        hidden_size=conf.hidden_size,
-        #                        label_size=len(conf.label2id)
-        #                        )
-        ner_model = BiLSTM_CRF(len(vocab),
+        ner_model = BiLSTM_CRF(vocab_size=len(vocab),
                                embedding_size=conf.embeding_size,
                                hidden_size=conf.hidden_size,
                                label_size=len(conf.label2id)
