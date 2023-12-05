@@ -99,12 +99,9 @@ def evaluate(model, vocab, conf):
 
 
 def predict(model,vocab,conf):
-    # path = "checkpoints/BiLSTM_CRF_best_20231121.pth"
-    # model.load(path)
-    lines = ["四川敦煌学”。近年来，丹棱县等地一些不知名的石窟迎来了海内外的游客，他们随身携带着胡文和的著作。",
-             "即使在收藏市场上已基本绝迹，但广州货币金融博物馆拥有全套。是2000年旧馆开馆时，",
-             "原来提丽泽商务区开发好几年了，没有大的进展，原因是定位一直不好，所以定位的明确，而且坚持下去，"
-             ]
+    lines = [
+        "邮储黄C+15386699183 : 出4月到期乐山，邮储直贴",
+    ]
     for line in lines:
         words = list(line)
         input_ids = [vocab.to_index(w) for w in words]
@@ -114,6 +111,7 @@ def predict(model,vocab,conf):
             input_ids = t.tensor([input_ids], dtype=t.long)
             input_mask = t.tensor([input_mask], dtype=t.bool)
             tags = model.forward_tags(input_ids, input_mask)
+        print(tags)
         label_entities = get_entities(tags[0], conf.id2label)
         items = []
         for tag, start, end in label_entities:
@@ -170,7 +168,7 @@ def main(task, model, gpu, pretrained,revocab):
     if task == "eval":
         pass
     if task == "predict":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231122.pth")
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231124.pth")
         predict(ner_model, vocab, conf)
 
 
