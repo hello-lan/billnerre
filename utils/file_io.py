@@ -37,5 +37,5 @@ def load_json(path):
 
 def save_json(data, path):
     with open(path,mode='w') as f:
-        json.dump(data, f)
+        json.dump(data, f, indent=2, ensure_ascii=False)
 

@@ -30,54 +30,72 @@ def toBIOS(data):
         tmp.append(rst)
     return tmp
 
+def toBIOS_v2(anno_dat):
+    tmp = []
+    for item in anno_dat:
+        txt = item["text"]
+        tags = ['O'] * len(txt)
+        try:
+            labels = item['label']
+        except:
+            labels = []
+        for label_info in labels:
+            # 修正标注时边缘多标了空白符号的情况
+            ent_text = label_info["text"]
+            ent_text_1 = ent_text.lstrip()
+            ent_text_2 = ent_text.rstrip()
+            delta_1 = len(ent_text) - len(ent_text_1)
+            delta_2 = len(ent_text) - len(ent_text_2)
+
+            start = label_info["start"] + delta_1
+            end = label_info["end"] - delta_2
+            # start = label_info["start"]
+            # end = label_info["end"]
+            # if delta_1 + delta_2 > 0:
+            #     print("init: %s"%(txt[start:end]),(start, end))
+            #     start += delta_1
+            #     end -= delta_2
+            #     print("final:%s"%(txt[start:end]),(start, end))
+
+            entity = label_info["labels"][0]
+            if entity in ("承接业务",):
+                continue
+            if start == (end -1):
+                tags[start] = "S-%s"%entity
+            else:
+                B = "B-%s" % entity
+                I = "I-%s" % entity
+                tags[start] = B 
+                tags[start+1: end] = [I] * (end-start-1)
+        rst = dict(text=txt, tag=" ".join(tags))
+        tmp.append(rst)
+    return tmp
+
+
 
 def main_preprocess(data_dir):
     processed_data= []
     for fname in os.listdir(data_dir):
         path = os.path.join(data_dir,fname)
         data = load_json(path)
-        processed_data.extend(toBIOS(data))
+        for item in toBIOS_v2(data):
+            item["source"] = fname
+            processed_data.append(item)
 
     i = int(len(processed_data) * 0.8)
     shuffle(processed_data)
     data_train = processed_data[:i]
     data_dev = processed_data[i:]
 
-    with open('../data/wechat_msg/train_processed.json','w',encoding='utf-8') as f:
-        json.dump(data_train, f, indent=2)
+    with open('../data/corpus_msg/train_processed.json','w',encoding='utf-8') as f:
+        json.dump(data_train, f, indent=2, ensure_ascii=False)
 
-    with open('../data/wechat_msg/dev_processed.json','w',encoding='utf-8') as f:
-        json.dump(data_dev, f, indent=2)
-
-
-def main_statistic(data_dir):
-    """统计标注实体"""
-    for fname in os.listdir(data_dir):
-        path = os.path.join(data_dir,fname)
-        data = load_json(path)
-        ent_of_id = defaultdict(set)
-        counter = Counter()
-        sheet = fname.split(".")[0]
-        for item in data:
-            id_ = item["id"]
-            if "label" not in item:
-                continue
-            for e in item["label"]:
-                ent = e['text']
-                ent_of_id[ent].add(id_)
-                counter[ent] += 1
-        df = pd.Series(counter).to_frame(name='freq')
-        df["txt_ids"] = df.index.map(ent_of_id)
-        
-        df.sort_values(by="freq",ascending=False).to_excel(f'../cache/{sheet}.xlsx')
-
-
-
-publishers = ["🌽米修","鹭岛小丫🐯","🍀 ","二任一点都不愣🌚","MarkL🐴"]
+    with open('../data/corpus_msg/dev_processed.json','w',encoding='utf-8') as f:
+        json.dump(data_dev, f, indent=2, ensure_ascii=False)
 
 
 
 if __name__ == "__main__":
-    # main_statistic("wechat_msg")
     # main_preprocess("msg")
-    main_preprocess("wechat_msg")
+    # main_preprocess("wechat_msg")
+    main_preprocess("../../corpus/Step2_已标注语料/final")

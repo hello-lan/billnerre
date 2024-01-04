@@ -8,7 +8,7 @@ from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from models.bilstm_crf import BiLSTM_CRF
 from config import Config
-from utils.file_io import load_json
+from utils.file_io import load_json,save_json
 from utils.metric import SeqEntityScore
 from utils.logger import logger, init_logger
 from utils import get_or_build_vocab, load_pretrained_vocab_embedding, DatasetLoader, ProgressBar, AverageMeter
@@ -101,6 +101,7 @@ def evaluate(model, vocab, conf):
 def predict(model,vocab,conf):
     lines = [
         "邮储黄C+15386699183 : 出4月到期乐山，邮储直贴",
+        "浦发天津-胡广森 : 询价收12月电\n浦发天津-胡广森18221951727",
     ]
     for line in lines:
         words = list(line)
@@ -111,19 +112,48 @@ def predict(model,vocab,conf):
             input_ids = t.tensor([input_ids], dtype=t.long)
             input_mask = t.tensor([input_mask], dtype=t.bool)
             tags = model.forward_tags(input_ids, input_mask)
-        print(tags)
+        # print(tags)
         label_entities = get_entities(tags[0], conf.id2label)
         items = []
-        for tag, start, end in label_entities:
+        for label_name, start, end in label_entities:
             words = line[start:end+1]
-            item = dict(tag=tag,start=start,end=end,entity=words)
+            item = dict(label_name=label_name,start=start,end=end,text=words)
             items.append(item)
-        # print(line)
-        print(items) 
+        rst = dict(text=line, labels=items)
+        print(rst) 
+
+
+def extract(model, vocab, conf):
+    data = load_json(conf.eval_data_path)
+    model.eval()
+    tmp = []
+    for item in data:
+        text = item["text"]
+        words = list(text)
+        input_ids = [vocab.to_index(w) for w in words]
+        input_mask = [True] * len(words)
+
+        with t.no_grad():
+            input_ids = t.tensor([input_ids], dtype=t.long)
+            input_mask = t.tensor([input_mask], dtype=t.bool)
+            tags = model.forward_tags(input_ids, input_mask)
+        label_entities = get_entities(tags[0], conf.id2label)
+        items = []
+        for label_name, start, end in label_entities:
+            words = text[start:end+1]
+            item = dict(label_name=label_name,start=start,end=end,text=words)
+            items.append(item)
+        rst = dict(text=text, labels=items)
+        tmp.append(rst)
+
+    save_path = "cache/extract_rst.json"
+    save_json(tmp, save_path)
+
+    
 
 
 @click.command()
-@click.option('-t', '--task', type=click.Choice(['train', 'eval','predict']),default='train', help='任务')
+@click.option('-t', '--task', type=click.Choice(['train', 'eval','predict','extract']),default='train', help='任务')
 @click.option("--revocab", is_flag=True, help="是否重新创建vocablary")
 @click.option('--pretrained', is_flag=True, help='使用预训练词向量')
 @click.option('-m', "--model", type=click.Choice(['bilstm_crf']), default='bilstm_crf', help="模型", show_default=True)
@@ -168,8 +198,12 @@ def main(task, model, gpu, pretrained,revocab):
     if task == "eval":
         pass
     if task == "predict":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20231124.pth")
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240104.pth")
         predict(ner_model, vocab, conf)
+
+    if task == "extract":
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240104.pth")
+        extract(ner_model, vocab, conf)
 
 
 
