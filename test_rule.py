@@ -6,8 +6,7 @@ import pandas as pd
 
 from utils.file_io import load_json, save_json
 from relation import split as Spliter
-from relation.rule import ReExtractor
-from relation import PublisherORGExtractor
+from relation.extractor import ReExtractor
 
 
 LabelItem = namedtuple("LabelItem", ["start","end","text","label"])
@@ -102,7 +101,6 @@ def test_simple_rule():
     cache2 = []
     path =  "cache/simple_rule_extract_rst.json"
 
-    org_extractor = PublisherORGExtractor()
     re_extractor = ReExtractor()
     re_extractor.add_rule("(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限}{承兑人}，{贴现人}直?贴(?=$|[^\u4e00-\u9fa5])")
     re_extractor.add_rule("(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限}{贴现人}贴{承兑人}{金额}")

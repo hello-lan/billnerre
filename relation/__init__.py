@@ -1,1 +1,1 @@
-from .extractor import PublisherORGExtractor
+from .extractor import MultiSubjectExtractor

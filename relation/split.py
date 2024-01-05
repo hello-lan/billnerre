@@ -30,7 +30,7 @@ def split_publisher_vs_msg(text, labels):
 def split_msg(text, labels):
     """ 分段：消息内容分段 """
     # m = re.search("[\r\n]+", text)      # 按换行符分割
-    m = re.search("([\r\n]+|[；，。\s](?=出|收))", text)      # 按换行符及交易方向分割
+    m = re.search("([\r\n]+|[；，。\s][另再]?(?=出|收))", text)      # 按换行符及交易方向分割
     if m:
         idx = m.span()[-1]
         left_text, left_labels, right_text, right_labels = split_text_labels(text, labels, idx)
