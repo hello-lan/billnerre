@@ -11,22 +11,25 @@ class Extractor(ABC):
         pass
 
 
-class NaiveExtractor(Extractor):
-    def __init__(self, re_constr=None,sep=","):
-        self.sep = ","
-        self.res
-        pass
+class CombineExtractor(Extractor):
+    """组合关系抽取器，把出现的标签直接组合成一组抽取信息"""
+    def __init__(self, multival_label=None,sep=","):
+        self.sep = sep
+        self.multival_label = multival_label
 
     def extract(self, text, labels):
         item = {item["label_name"]:item["text"] for item in labels}
-        
+        if self.multival_label is not None:
+            sep = self.sep 
+            multival_label = self.multival_label
+            item[multival_label] = sep.join([item["text"] for item in labels if item["label_name"]==multival_label])
         return item
 
 
 class PublisherOrgExtactor(Extractor):
     """ 发布者所属机构抽取器
     """
-    def extact(self, text, labels):
+    def extract(self, text, labels):
         org_labels = filter(lambda x:x["label_name"]=="发布者所属机构",labels)
         orgs = list(map(lambda x:x["text"],org_labels))
         if len(orgs) > 0:
@@ -94,7 +97,7 @@ class MultiSubjectExtractor(Extractor):
             try:
                 regexp = r.format_map(mapping)
             except:
-                warnings.warn("rule `%s` fill element %s failed" %(r, mapping))
+                # warnings.warn("rule `%s` fill element %s failed" %(r, mapping))
                 continue 
             else:
                 regexps.append(regexp)

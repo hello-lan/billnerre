@@ -124,6 +124,9 @@ def predict(model,vocab,conf):
 
 
 def extract(model, vocab, conf):
+    from rela_extract import create_extractor
+    rela_extractor = create_extractor()
+
     data = load_json(conf.eval_data_path)
     model.eval()
     tmp = []
@@ -144,9 +147,11 @@ def extract(model, vocab, conf):
             item = dict(label_name=label_name,start=start,end=end,text=words)
             items.append(item)
         rst = dict(text=text, labels=items)
-        tmp.append(rst)
-
-    save_path = "cache/extract_rst.json"
+        # 关系抽取
+        extract_items = rela_extractor.extract_relation(text,items)
+        tmp.extend(extract_items)
+    
+    save_path = "cache/ner_relation_result.json"
     save_json(tmp, save_path)
 
     
