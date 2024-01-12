@@ -10,6 +10,7 @@ class Extractor(ABC):
     def extract(self, text, labels):
         pass
 
+
 class MultiSubjectExtractor(Extractor):
     """ 多要素主体抽取器
     用于单条文本中含有多个要素主体的情况，
@@ -72,7 +73,7 @@ class MultiSubjectExtractor(Extractor):
         m = pattern.search(text)
         if m:
             item = m.groupdict()
-            item = {k:v for k,v in item.items() if v is not None}        # 过滤None值
+            # item = {k:v for k,v in item.items() if v is not None}        # 过滤None值
             item["matched_info"] = dict(pattern=pattern.pattern, span=m.span())  # 正则表达式匹配信息
             return item
         else:
@@ -90,18 +91,33 @@ class MultiSubjectExtractor(Extractor):
         else:
             return []
         
-    def extract(self, text, labels):
-        category = defaultdict(set)
-        for info in labels:
-            label_type = info["label_name"]
-            label_text = info["text"]
-            category[label_type].add(label_text)        
-
-        regexps = self._build_regexp_patterns(category)
-        rst = self._extract(text, regexps)
-        # 拆分多个实体为列表(TODO)
+    def melt_entities(self, items,label2entities):
+        # prepare regexps
+        label2regexp = dict()
+        for label_name, entities in label2entities.items():
+            label2regexp[label_name] = "({regexp})".format(regexp="|".join(entities))
+        # 
+        for item in items:
+            for label_name in item.keys():
+                if label_name in label2regexp:
+                    regexp = label2regexp[label_name]
+                    entity = item[label_name]
+                    entities = re.findall(regexp,entity)
+                    item[label_name] = entities if len(entities) > 1 else entities[0]
+        return items
         
-        return rst
+    def extract(self, text, labels):
+        label2entities = defaultdict(set)
+        for info in labels:
+            label_name = info["label_name"]
+            entity = info["text"]
+            label2entities[label_name].add(entity)        
+
+        regexps = self._build_regexp_patterns(label2entities)
+        items = self._extract(text, regexps)
+        # 拆分多个实体为列表
+        items = self.melt_entities(items, label2entities)
+        return items
 
 
 class TemplateExtractor:
