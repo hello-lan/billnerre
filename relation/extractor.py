@@ -117,8 +117,8 @@ class MultiSubjectExtractor(Extractor):
             entity = info["text"]
             label2entities[label_name].add(entity)        
 
-        regexps = self._build_regexp_patterns(label2entities)
-        items = self._extract(text, regexps)
+        patterns = self._build_regexp_patterns(label2entities)
+        items = self._extract(text, patterns)
         # 拆分多个实体为列表
         items = self.melt_entities(items, label2entities)
         return items
@@ -139,7 +139,7 @@ class TemplateExtractor:
     def add_templates(self, templates:list):
         self.templates.extend(templates)
 
-    def _build_regexp(self, tags):
+    def _build_regexp_patterns(self, tags):
         label2express = dict()
         for k, v in tags.items():
             if k in ("承兑人","贴现人","票据期限"):
@@ -217,20 +217,20 @@ class TemplateExtractor:
         return output
 
     def extract(self, text, labels):
-        category = defaultdict(set)
+        label2entities = defaultdict(set)
         for info in labels:
-            label_type = info["label_name"]
-            label_text = info["text"]
-            category[label_type].add(label_text)        
+            label_name = info["label_name"]
+            entity = info["text"]
+            label2entities[label_name].add(entity)      
 
-        regexps = self._build_regexp(category)
-        data = [self._extract_and_assemble_info(r, text) for r in regexps]
+        patterns = self._build_regexp_patterns(label2entities)
+        data = [self._extract_and_assemble_info(p, text) for p in patterns]
         if len(data) > 0:
-            rst = max(data, key=lambda x:sum([len(xx) for xx in x]))
+            items = max(data, key=lambda x:sum([len(xx) for xx in x]))
         else:
-            rst = []
-        return rst
-
+            items = []
+        return items
+    
 
 class CombineExtractor(Extractor):
     """组合关系抽取器，把出现的标签直接组合成一组抽取信息"""
