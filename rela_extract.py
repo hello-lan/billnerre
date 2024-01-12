@@ -3,7 +3,7 @@ from collections import Counter
 
 from utils import split as Spliter
 from utils.file_io import load_json,save_json
-from relation.extractor import (MultiSubjectExtractor, CombineExtractor,TradingDirectionExtractor,
+from relation.extractor import (MultiSubjectExtractor, CombineExtractor,
                                 MulitDueExtractor)
 
 
@@ -110,6 +110,7 @@ class RelationExtractor:
     
         special_muli_due_pattern = [
             "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}和{票据期限2}票",
+            "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}\s*或者{票据期限2}",
         ]
         multi_due_extractor = MulitDueExtractor(special_muli_due_pattern)
     

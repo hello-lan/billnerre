@@ -4,6 +4,16 @@ from collections import defaultdict
 from abc import ABC, abstractclassmethod
 
 
+def join_entities_as_regexp(entities):
+    """将多个具有相同标签的实体拼接得到一个正则表达式
+    """
+    connector_express = "[、,，\s及和/+或者至-]{0,3}"       # 实体间的关联符号的真正表达式
+    _entities = [connector_express + ent for ent in entities]
+    regexp = "|".join(_entities)
+    return regexp    
+
+
+
 ## 抽象基类：抽取器
 class Extractor(ABC):
     @abstractclassmethod
@@ -30,18 +40,12 @@ class MultiSubjectExtractor(Extractor):
     def add_rules(self, rules):
         self.rules.extend(rules)
 
-    def _join_entity(self, ents):
-        join_regexp = "[、,，\s及和/+或者至-]{0,3}"
-        _ents = [join_regexp + ent for ent in ents]
-        regexp = "|".join(_ents)
-        return regexp
-
     def _build_regexp_patterns(self, tags):
         # 1.准备待填充的要素（正则表达式形式）
         mapping = dict()
         for k, v in tags.items():
             if k in ("承兑人","贴现人","票据期限"):
-                val = self._join_entity(v)
+                val = join_entities_as_regexp(v)
                 val = "((?:%s)+)"%val
             else:
                 val =  "|".join(v)
@@ -135,17 +139,11 @@ class TemplateExtractor:
     def add_templates(self, templates:list):
         self.templates.extend(templates)
 
-    def _join_entity(self, ents):
-        join_regexp = "[、,，\s及和/+或者至-]{0,3}"
-        _ents = [join_regexp + ent for ent in ents]
-        regexp = "|".join(_ents)
-        return regexp
-
     def _build_regexp(self, tags):
         label2express = dict()
         for k, v in tags.items():
             if k in ("承兑人","贴现人","票据期限"):
-                val = self._join_entity(v)
+                val = join_entities_as_regexp(v)
                 val = "(?:%s)+"%val
             else:
                 val =  "|".join(v)
@@ -259,42 +257,6 @@ class MulitDueExtractor(Extractor):
         if len(rst) == 0:
             rst = self.combine_extractor.extract(text, labels)
         return rst
-
-
-"""以下暂时用不上"""
-
-class PublisherOrgExtactor(Extractor):
-    """ 发布者所属机构抽取器
-    """
-    def extract(self, text, labels):
-        org_labels = filter(lambda x:x["label_name"]=="发布者所属机构",labels)
-        orgs = list(map(lambda x:x["text"],org_labels))
-        if len(orgs) > 0:
-            org = orgs[-1]  # 取最后一个
-        else:
-            org = None
-        item = {"发布者所属机构":org}
-        return item
-
-
-class TradingDirectionExtractor(Extractor):
-    """ 交易方向抽取器
-    """
-    def __init__(self, regexp=None):
-        if regexp is None:
-            self.p = re.compile('[^：:、\d]{0,2}(?<!卖|买|托)(?P<交易方向>出|收|卖断|买断)\D{0,2}')
-        else:
-            self._check_regexp(regexp)
-            self.p = re.compile(regexp)
-
-    def _check_regexp(self, regexp):
-        if "(?P<交易方向>" not in regexp:
-            raise ValueError("`regexp` is invalid! must be like `(?P<交易方向>[express])`")
-
-    def extract(self, text, labels):
-        m = self.p.search(text)
-        return  m.groupdict() if m else dict(交易方向=None)
-
 
 
            
