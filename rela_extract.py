@@ -31,7 +31,6 @@ def extract_trading_direction(text):
         return dict(交易方向=None)
 
 
-
 class RelationExtractor:
     """ 关系抽取器
     """
@@ -77,13 +76,23 @@ class RelationExtractor:
                 method = 3
             elif len(cnt) == 1 and '贴现人' in cnt:
                 rst_items = CombineExtractor(multival_label="贴现人").extract(sub_text, sub_labels)
-                method = 5
+                method = 4
+            elif len(cnt) == 1 and '金额' in cnt and re.search("单张\d+",sub_text):
+                amts = [label["text"] for label in sub_labels if label["label_name"]=="金额"]
+                exp = "|".join(amts)
+                amts_exp = "单张(%s)"%exp
+                _amt = re.findall(amts_exp,sub_text)
+                sub_labels_ = filter(lambda x:x["text"] not in _amt, sub_labels)
+                rst_items = CombineExtractor().extract(sub_text, sub_labels_)
+                method = 6
             else:
-                # TODO
                 rst_items = self.multi_subject_extractor.extract(sub_text, sub_labels)
+                # 如果抽取结果少了贴现人，且贴现人在末尾（TODO）
+                
+
                 for it in rst_items:
                     it.pop("matched_info")
-                method=4
+                method = 5
 
             if len(rst_items) > 0:
                 txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
@@ -91,22 +100,27 @@ class RelationExtractor:
                     rst.update(org_item)
                     if "交易方向" not in rst:
                         rst.update(txn_dir)
-            result.append(dict(text=sub_text,output=rst_items,raw_text=text,method=method))
+            result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method))
         return result
     
     @classmethod
     def create_rela_extrator(cls):
         mulisubject_extractor = MultiSubjectExtractor()
         mulisubject_extractor.add_rule("{票据期限}{承兑人}")
+        mulisubject_extractor.add_rule("{票据期限}{利率}{承兑人}")
         mulisubject_extractor.add_rule("{票据期限}{承兑人}{金额}")
+        mulisubject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
         mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}")
         mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
-        mulisubject_extractor.add_rule("{承兑人}{金额}")
+        mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}承兑票{金额}")
+        mulisubject_extractor.add_rule("{承兑人}\s*{金额}")
         mulisubject_extractor.add_rule("{承兑人}{票据期限}{金额}")
         mulisubject_extractor.add_rule("{贴现人}贴{承兑人}{金额}")
+        mulisubject_extractor.add_rule("{贴现人}直?贴{承兑人}")
         mulisubject_extractor.add_rule("{金额}{票据期限}{承兑人}")
         mulisubject_extractor.add_rule("{金额}{承兑人}")
         mulisubject_extractor.add_rule("{利率}{承兑人}")
+        mulisubject_extractor.add_rule("{承兑人}{利率}")
     
         special_muli_due_pattern = [
             "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}和{票据期限2}票",
@@ -131,6 +145,8 @@ def load_test_data():
             start, end = label_item["start"],label_item["end"]
             label_text = txt[start:end]
             label_name = label_item['labels'][0]
+            if label_name == "承接业务":
+                continue
             new_label_item=dict(start=start,
                                 end=end,
                                 text=label_text,
@@ -158,6 +174,26 @@ def test():
     tmp_03 = filter(lambda x: x["method"]==3, tmp)
     tmp_04 = filter(lambda x: x["method"]==4, tmp)
     tmp_05 = filter(lambda x: x["method"]==5, tmp)
+    tmp_06 = filter(lambda x: x["method"]==6, tmp)
+
+    def is_complete(item):
+        labels = item["labels"]
+        output = item["output"]
+        entities_01 = [x["text"] for x in labels]
+        entities_02_ = [xx for x in output for xx in x.values()]
+        entities_02 = []
+        for e in entities_02_:
+            if isinstance(e, list):
+                entities_02.extend(e)
+            elif isinstance(e, str):
+                entities_02.append(e)
+        y = set(entities_01) - set(entities_02)
+        return len(y)  > 0 and item["method"]==5
+    
+    tmp_07 = list(filter(is_complete, tmp))
+    for item in tmp_07:
+        item.pop("labels")
+    
 
 
     path01 = "cache/extract_test_1.json"
@@ -165,11 +201,15 @@ def test():
     path03 = "cache/extract_test_3.json"
     path04 = "cache/extract_test_4.json"
     path05 = "cache/extract_test_5.json"
+    path06 = "cache/extract_test_6.json"
+    path07 = "cache/extract_test_7.json"
     save_json(list(tmp_01), path01)
     save_json(list(tmp_02), path02)
     save_json(list(tmp_03), path03)
     save_json(list(tmp_04), path04)
     save_json(list(tmp_05), path05)
+    save_json(list(tmp_06), path06)
+    save_json(list(tmp_07), path07)
 
 
 
