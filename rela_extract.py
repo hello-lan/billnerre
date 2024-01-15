@@ -65,18 +65,20 @@ class RelationExtractor:
             if len(cnt) == 0:
                 rst_items = CombineExtractor().extract(sub_text, sub_labels)
                 method = 1
-            # case 2:若只是`承兑人`出现重复
+            # case 2: 若只是`承兑人`出现重复
             elif len(cnt) == 1 and "承兑人" in cnt:
                 rst_items = CombineExtractor(multival_label="承兑人").extract(sub_text, sub_labels)
                 method = 2
-            # case 3:若只是`票据期限`出现重复
+            # case 3: 若只是`票据期限`出现重复
             elif len(cnt) == 1 and "票据期限" in cnt:
                 # rst_items = CombineExtractor(multival_label="票据期限").extract(sub_text, sub_labels)
                 rst_items = self.multi_due_extrator.extract(sub_text, sub_labels)
                 method = 3
+            # case 4: 贴现人重复
             elif len(cnt) == 1 and '贴现人' in cnt:
                 rst_items = CombineExtractor(multival_label="贴现人").extract(sub_text, sub_labels)
                 method = 4
+            # case 5: 金额重复
             elif len(cnt) == 1 and '金额' in cnt and re.search("单张\d+",sub_text):
                 amts = [label["text"] for label in sub_labels if label["label_name"]=="金额"]
                 exp = "|".join(amts)
@@ -97,30 +99,37 @@ class RelationExtractor:
             if len(rst_items) > 0:
                 txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
                 for rst in rst_items:
-                    rst.update(org_item)
+                    rst.update(org_item)  # 添加发布者所属机构
                     if "交易方向" not in rst:
-                        rst.update(txn_dir)
+                        rst.update(txn_dir)   # 添加交易方向
             result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method))
         return result
     
     @classmethod
     def create_rela_extrator(cls):
         mulisubject_extractor = MultiSubjectExtractor()
-        mulisubject_extractor.add_rule("{票据期限}{承兑人}")
+        mulisubject_extractor.add_rule("{票据期限}（?{承兑人}）?")
         mulisubject_extractor.add_rule("{票据期限}{利率}{承兑人}")
         mulisubject_extractor.add_rule("{票据期限}{承兑人}{金额}")
         mulisubject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
-        mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}")
+        mulisubject_extractor.add_rule("{票据期限}{贴现人}直?贴（?{承兑人}）?")
         mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
         mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}承兑票{金额}")
         mulisubject_extractor.add_rule("{承兑人}\s*{金额}")
         mulisubject_extractor.add_rule("{承兑人}{票据期限}{金额}")
-        mulisubject_extractor.add_rule("{贴现人}贴{承兑人}{金额}")
+        mulisubject_extractor.add_rule("{贴现人}贴{承兑人}（?{金额}）?")
         mulisubject_extractor.add_rule("{贴现人}直?贴{承兑人}")
         mulisubject_extractor.add_rule("{金额}{票据期限}{承兑人}")
+        mulisubject_extractor.add_rule("{金额}{票据期限}{贴现人}贴{承兑人}")
         mulisubject_extractor.add_rule("{金额}{承兑人}")
         mulisubject_extractor.add_rule("{利率}{承兑人}")
         mulisubject_extractor.add_rule("{承兑人}{利率}")
+        mulisubject_extractor.add_rule("{承兑人}{票据期限}") # 票据期限主要为`托收`
+        mulisubject_extractor.add_rule("{票据期限}各类票")
+        mulisubject_extractor.add_rule("{利率}出{承兑人}{金额}，{贴现人}贴")
+        mulisubject_extractor.add_rule("收{票据期限}[；;]")
+        mulisubject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
+        mulisubject_extractor.add_rule("收{承兑人}、")
     
         special_muli_due_pattern = [
             "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}和{票据期限2}票",
