@@ -4,7 +4,7 @@ from collections import Counter
 from utils import split as Spliter
 from utils.file_io import load_json,save_json
 from relation.extractor import (MultiSubjectExtractor, CombineExtractor,
-                                MulitDueExtractor)
+                                MulitDueExtractor, IntegrateExtractor)
 
 
 def extract_publisher_org(labels):
@@ -31,12 +31,11 @@ def extract_trading_direction(text):
         return dict(交易方向=None)
 
 
-class RelationExtractor:
+class RelationExtractorManager:
     """ 关系抽取器
     """
-    def __init__(self,multi_sub_ext, multi_due_ext):
-        self.multi_subject_extractor = multi_sub_ext
-        self.multi_due_extrator  = multi_due_ext
+    def __init__(self, extractors:list):
+        self.rela_extractors = extractors
        
     def extract_relation(self, text, labels):
         """关系抽取"""
@@ -59,54 +58,80 @@ class RelationExtractor:
             # 若无标签，则跳过
             if len(label_names) == 0:
                 continue
-            cnt = Counter(label_names)
-            cnt = {k:v for k,v in cnt.items() if v > 1}  # 重复出现的标签类型及其出现次数
-            # case 1:若标签唯一，则所有标签归为一个完整的要素体
-            if len(cnt) == 0:
-                rst_items = CombineExtractor().extract(sub_text, sub_labels)
-                method = 1
-            # case 2: 若只是`承兑人`出现重复
-            elif len(cnt) == 1 and "承兑人" in cnt:
-                rst_items = CombineExtractor(multival_label="承兑人").extract(sub_text, sub_labels)
-                method = 2
-            # case 3: 若只是`票据期限`出现重复
-            elif len(cnt) == 1 and "票据期限" in cnt:
-                # rst_items = CombineExtractor(multival_label="票据期限").extract(sub_text, sub_labels)
-                rst_items = self.multi_due_extrator.extract(sub_text, sub_labels)
-                method = 3
-            # case 4: 贴现人重复
-            elif len(cnt) == 1 and '贴现人' in cnt:
-                rst_items = CombineExtractor(multival_label="贴现人").extract(sub_text, sub_labels)
-                method = 4
-            # case 5: 金额重复
-            elif len(cnt) == 1 and '金额' in cnt and re.search("单张\d+",sub_text):
-                amts = [label["text"] for label in sub_labels if label["label_name"]=="金额"]
-                exp = "|".join(amts)
-                amts_exp = "单张(%s)"%exp
-                _amt = re.findall(amts_exp,sub_text)
-                sub_labels_ = filter(lambda x:x["text"] not in _amt, sub_labels)
-                rst_items = CombineExtractor().extract(sub_text, sub_labels_)
-                method = 6
+            for j, extractor in enumerate(self.rela_extractors):
+                rst_items = extractor.extract(sub_text, sub_labels)
+                if rst_items is not None:
+                    # 补充其他要素
+                    txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
+                    for rst in rst_items:
+                        rst.update(org_item)  # 添加发布者所属机构
+                        if "交易方向" not in rst:
+                            rst.update(txn_dir)   # 添加交易方向 
+                    # 保存结果
+                    method = str(extractor)
+                    method = j+1
+                    result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method))
+                    # 跳出
+                    break
             else:
-                rst_items = self.multi_subject_extractor.extract(sub_text, sub_labels)
-                # 如果抽取结果少了贴现人，且贴现人在末尾（TODO）
-                
+                pass
+            # cnt = Counter(label_names)
+            # cnt = {k:v for k,v in cnt.items() if v > 1}  # 重复出现的标签类型及其出现次数
+            # # case 1:若标签唯一，则所有标签归为一个完整的要素体
+            # if len(cnt) == 0:
+            #     rst_items = CombineExtractor().extract(sub_text, sub_labels)
+            #     method = 1
+            # # case 2: 若只是`承兑人`出现重复
+            # elif len(cnt) == 1 and "承兑人" in cnt:
+            #     rst_items = CombineExtractor(multival_label="承兑人").extract(sub_text, sub_labels)
+            #     method = 2
+            # # case 3: 若只是`票据期限`出现重复
+            # elif len(cnt) == 1 and "票据期限" in cnt:
+            #     # rst_items = CombineExtractor(multival_label="票据期限").extract(sub_text, sub_labels)
+            #     rst_items = self.multi_due_extrator.extract(sub_text, sub_labels)
+            #     method = 3
+            # # case 4: 贴现人重复
+            # elif len(cnt) == 1 and '贴现人' in cnt:
+            #     rst_items = CombineExtractor(multival_label="贴现人").extract(sub_text, sub_labels)
+            #     method = 4
+            # # case 5: 金额重复
+            # elif len(cnt) == 1 and '金额' in cnt and re.search("单张\d+",sub_text):
+            #     amts = [label["text"] for label in sub_labels if label["label_name"]=="金额"]
+            #     exp = "|".join(amts)
+            #     amts_exp = "单张(%s)"%exp
+            #     _amt = re.findall(amts_exp,sub_text)
+            #     sub_labels_ = list(filter(lambda x:x["text"] not in _amt, sub_labels))
+            #     rst_items = CombineExtractor(multival_label="金额").extract(sub_text, sub_labels_)
+            #     method = 5
+            # else:
+            #     rst_items = self.multi_subject_extractor.extract(sub_text, sub_labels)
+            #     # 如果抽取结果少了贴现人，且贴现人在末尾（TODO）
+            #     for it in rst_items:
+            #         it.pop("matched_info")
+            #     method = 6
 
-                for it in rst_items:
-                    it.pop("matched_info")
-                method = 5
-
-            if len(rst_items) > 0:
-                txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
-                for rst in rst_items:
-                    rst.update(org_item)  # 添加发布者所属机构
-                    if "交易方向" not in rst:
-                        rst.update(txn_dir)   # 添加交易方向
-            result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method))
+            # if len(rst_items) > 0:
+            #     txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
+            #     for rst in rst_items:
+            #         rst.update(org_item)  # 添加发布者所属机构
+            #         if "交易方向" not in rst:
+            #             rst.update(txn_dir)   # 添加交易方向
+            # result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method))
         return result
     
     @classmethod
     def create_rela_extrator(cls):
+        uniq_subject_extractor = IntegrateExtractor()
+        multi_discounter_extractor = IntegrateExtractor("贴现人")
+        multi_accptor_extractor = IntegrateExtractor("承兑人")
+        multi_amt_extractor = IntegrateExtractor("金额")
+
+        special_muli_due_pattern = [
+            "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}和{票据期限2}票",
+            "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}\s*或者{票据期限2}",
+        ]
+        multi_due_extractor = MulitDueExtractor(special_muli_due_pattern)
+
         mulisubject_extractor = MultiSubjectExtractor()
         mulisubject_extractor.add_rule("{票据期限}（?{承兑人}）?")
         mulisubject_extractor.add_rule("{票据期限}{利率}{承兑人}")
@@ -131,14 +156,17 @@ class RelationExtractor:
         mulisubject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
         mulisubject_extractor.add_rule("收{承兑人}、")
     
-        special_muli_due_pattern = [
-            "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}和{票据期限2}票",
-            "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}\s*或者{票据期限2}",
+        extractors = [
+            uniq_subject_extractor,
+            multi_discounter_extractor,
+            multi_accptor_extractor,
+            multi_amt_extractor,
+            multi_due_extractor,
+            mulisubject_extractor
         ]
-        multi_due_extractor = MulitDueExtractor(special_muli_due_pattern)
-    
-        rela_extractor = cls(mulisubject_extractor,multi_due_extractor)
-        return rela_extractor
+
+        manager = cls(extractors)
+        return manager
 
 
 def load_test_data():
@@ -168,22 +196,27 @@ def load_test_data():
 
 
 def test():
-    rela_extractor = RelationExtractor.create_rela_extrator()
+    manager = RelationExtractorManager.create_rela_extrator()
     # 加载数据
     data = load_test_data()
     tmp = []
     for i,item in enumerate(data):
         text = item["text"]
         labels = item["labels"]
-        rst = rela_extractor.extract_relation(text, labels)
+        rst = manager.extract_relation(text, labels)
         tmp.extend(rst)
     
-    tmp_01 = filter(lambda x: x["method"]==1, tmp)
-    tmp_02 = filter(lambda x: x["method"]==2, tmp)
-    tmp_03 = filter(lambda x: x["method"]==3, tmp)
-    tmp_04 = filter(lambda x: x["method"]==4, tmp)
-    tmp_05 = filter(lambda x: x["method"]==5, tmp)
-    tmp_06 = filter(lambda x: x["method"]==6, tmp)
+    def pop_labels(item):
+        item_new = dict(item)
+        item_new.pop("labels")
+        return item_new
+    
+    tmp_01 = map(pop_labels,filter(lambda x: x["method"]==1, tmp))
+    tmp_02 = map(pop_labels,filter(lambda x: x["method"]==2, tmp))
+    tmp_03 = map(pop_labels,filter(lambda x: x["method"]==3, tmp))
+    tmp_04 = map(pop_labels,filter(lambda x: x["method"]==4, tmp))
+    tmp_05 = map(pop_labels,filter(lambda x: x["method"]==5, tmp))
+    tmp_06 = map(pop_labels,filter(lambda x: x["method"]==6, tmp))
 
     def is_complete(item):
         labels = item["labels"]
@@ -197,13 +230,9 @@ def test():
             elif isinstance(e, str):
                 entities_02.append(e)
         y = set(entities_01) - set(entities_02)
-        return len(y)  > 0 and item["method"]==5
+        return len(y)  > 0 and item["method"]==6
     
-    tmp_07 = list(filter(is_complete, tmp))
-    for item in tmp_07:
-        item.pop("labels")
-    
-
+    tmp_07 = map(pop_labels,(filter(is_complete, tmp)))
 
     path01 = "cache/extract_test_1.json"
     path02 = "cache/extract_test_2.json"

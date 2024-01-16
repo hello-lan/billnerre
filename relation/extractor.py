@@ -1,6 +1,6 @@
 import re
 import warnings
-from collections import defaultdict
+from collections import defaultdict, Counter
 from abc import ABC, abstractclassmethod
 
 
@@ -245,6 +245,41 @@ class TemplateExtractor:
         else:
             items = []
         return items
+
+
+class IntegrateExtractor(Extractor):
+    """组合关系抽取器，把出现的标签直接组合成一组抽取信息"""
+    def __init__(self, multival_label=None):
+        self.multival_label = multival_label
+
+    def _preprocess_labels(self, labels):
+        return labels
+
+    def _check_label_names(self, labels:list):
+        """ 使用IntegrateExtractor需要确保除了标签multival_label外，其他标签名唯一
+        """
+        counter = Counter(labels)
+        dumplcates = {k:v for k,v in counter.items() if v > 1}  # 重复出现的标签类型及其出现次数
+        if self.multival_label is None:
+            return len(dumplcates) == 0
+        elif len(dumplcates)==1 and self.multival_label in dumplcates:
+            return True
+        else:
+            return False
+
+    def extract(self, text, labels):
+        label_names = [item["label_name"] for item in labels]
+        if not self._check_label_names(label_names):
+            return None
+        labels_ = self._preprocess_labels(labels)
+        item = {item["label_name"]:item["text"] for item in labels_}
+        if self.multival_label is not None:
+            multival_label = self.multival_label
+            item[multival_label] = [item["text"] for item in labels_ if item["label_name"]==multival_label]
+        return [item]
+        
+    def __str__(self):
+        return "{cls_name}(multival_label={arg})".format(cls_name=self.__class__.__name__, arg=self.multival_label)
     
 
 class CombineExtractor(Extractor):
