@@ -30,11 +30,12 @@ def split_publisher_vs_msg(text, labels):
 def split_msg(text, labels):
     """ 分段：消息内容分段 """
     # m = re.search("[\r\n]+", text)      # 按换行符分割
-    m = re.search("([\r\n]+|[；，。\s][另再]?(?=出|收))", text)      # 按换行符及交易方向分割
+    # m = re.search("([\r\n]+|[；，。\s][另再]?(?=出|收))", text)      # 按换行符及交易方向分割
+    m = re.search("([\r\n]+|[；，。\s][另再]?(?=出|收)|.{3,}[,，。、；\s](?=[^,，。、；\s]{0,5}量?[出收买卖]断?(点|少量|：|\d+)))", text)      # 可能会出现金额收xxx
     if m:
         idx = m.span()[-1]
         left_text, left_labels, right_text, right_labels = split_text_labels(text, labels, idx)
-        return [dict(text=left_text, labels=left_labels)] + split_msg(right_text, right_labels)
+        return split_msg(left_text.rstrip(), left_labels) + split_msg(right_text.rstrip(), right_labels)
     else:
         return [dict(text=text, labels=labels)]
 

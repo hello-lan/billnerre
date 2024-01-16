@@ -5,8 +5,8 @@ from collections import defaultdict, namedtuple, Counter
 import pandas as pd
 
 from utils.file_io import load_json, save_json
-from relation import split as Spliter
-from relation.extractor import ReExtractor
+from utils import split as Spliter
+from relation.extractor import TemplateExtractor as ReExtractor
 
 
 LabelItem = namedtuple("LabelItem", ["start","end","text","label"])
@@ -70,6 +70,7 @@ def test_split_pub_vs_msg():
 def test_split_msg():
     data = load_test_data()
     tmp = []
+    tmp02 = []
     for i,item in enumerate(data):
         text = item["text"]
         labels = item["labels"]
@@ -82,17 +83,19 @@ def test_split_msg():
 
         splits = [item["text"] for item in items]
         split_labels = [item["labels"] for item in items]
-        tmp.append(dict(raw_text=msg_text, splits=splits))
+        act_num = max([len(re.findall("(?<!卖|买|托)[出收卖买](?![买卖])",txt)) for txt in splits])
+        # act_num = max([txt.count("出") + txt.count("收") + txt.count("买")  + txt.count("卖") for txt in splits])
+        if act_num > 1:
+            #"1、代友出2月到期国贴富滇2亿  ??
+            tmp.append(dict(raw_text=msg_text, splits=splits))
+
+        tmp02.append(dict(raw_text=msg_text, splits=splits))
 
 
-        # _txt = msg_text.replace("托收","托s").replace("买卖","mm")
-        # if _txt.count("买") + _txt.count("卖") + _txt.count("出") + _txt.count("收")  > 1 :
-            # tmp.append(dict(raw_text=msg_text, splits=splits,labels=split_labels))
+    save_json(tmp,   "cache/test_split_msg_rst.json")
+    save_json(tmp02, "cache/test_split_msg_rst02.json")
 
-
-    path =  "cache/test_split_msg_rst.json"
-    save_json(tmp, path)
-    print("结果请查看文件：%s"%path)    
+    print("结果请查看文件：cache/test_split_msg_rst*.json")    
 
 
 def test_simple_rule():
@@ -223,6 +226,6 @@ def test_simple_rule():
  
 if __name__ == "__main__":
     # test_split_pub_vs_msg()
-    # test_split_msg()
-    test_simple_rule()
+    test_split_msg()
+    # test_simple_rule()
     # print(load_test_data()[0])
