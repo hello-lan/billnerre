@@ -116,7 +116,6 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("收{票据期限}[；;]")
         multi_subject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
         multi_subject_extractor.add_rule("收{承兑人}、")
-        12月电商（浙商直贴）
 
         temps = [
             "{利率1}量?(?P<交易方向1>出|收|买|卖){承兑人1}{票据期限1}，{利率2}量?(?P<交易方向2>出|收|买|卖){承兑人2}{票据期限2}",
@@ -130,8 +129,8 @@ class RelationExtractorManager:
         # "1、收9月为主的国贴城农及12月国贴财司、电商，可单张过亿，欢迎清单来",
         # "出 11月份 渤海直贴  齐鲁1140万1.50%+国股2440万1.40%   打包一起出"
         # "收四季度国贴城农电商，城农1.35+，电商1.45+",
-        "2、出12月国贴五大，国贴大商（浙商、江苏）"
-        "出 2月1132万、3月1460万  双国"
+        # "2、出12月国贴五大，国贴大商（浙商、江苏）"
+        # "出 2月1132万、3月1460万  双国"
         
         template_extractor = TemplateExtractor(temps)
     

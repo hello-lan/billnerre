@@ -4,15 +4,13 @@ from collections import defaultdict, Counter
 from abc import ABC, abstractclassmethod
 
 
-def join_entities_as_regexp(entities):
+def join_entities_as_regexp(entities, prefix='',sufix=''):
     """将多个具有相同标签的实体拼接得到一个正则表达式
     """
     entities = sorted(entities,key=lambda x:len(x), reverse=True)
-    connector_express = "[、,，\s及和/+或者至-]{0,3}"       # 实体间的关联符号的真正表达式
-    _entities = [connector_express + ent for ent in entities]
+    _entities = [prefix + ent + sufix for ent in entities]
     regexp = "|".join(_entities)
-    return regexp    
-
+    return regexp
 
 
 ## 抽象基类（接口）：抽取器
@@ -51,12 +49,12 @@ class MultiSubjectExtractor(Extractor):
         for k, v in tags.items():
             if k == "贴现人":
                 v = [vv+"贴?" for vv in v]
-            if k in ("承兑人","贴现人","票据期限"):
-                val = join_entities_as_regexp(v)
-                val = "((?:%s)+)"%val
+                val = join_entities_as_regexp(v, prefix="/?")
+            elif k in ("承兑人","票据期限"):
+                val = join_entities_as_regexp(v, prefix="[、,，\s及和/+或者至-]{0,3}",sufix="(?!贴)")
             else:
-                val =  "|".join(v)
-            mapping[k] = "(?P<{name}>{exp})".format(name=k,exp=val)
+                val =  join_entities_as_regexp(v)
+            mapping[k] = "(?P<{name}>(?:{exp})+)".format(name=k,exp=val)
         # 2. 填充正则表示式模板
         regexps = []
         for r in self.rules:
@@ -168,14 +166,14 @@ class TemplateExtractor(Extractor):
         for k, v in tags.items():
             if k == "贴现人":
                 v = [vv+"贴?" for vv in v]
-            if k in ("承兑人","贴现人","票据期限"):
-                val = join_entities_as_regexp(v)
-                val = "(?:%s)+"%val
+                val = join_entities_as_regexp(v, prefix="/?")
+            elif k in ("承兑人","票据期限"):
+                val = join_entities_as_regexp(v, prefix="[、,，\s及和/+或者至-]{0,3}", sufix="(?!贴)")
             else:
-                val =  "|".join(v)
+                val = join_entities_as_regexp(v)
             label2express[k] = val
 
-        base_mapping = {label:"(?P<{name}>{exp})".format(name=label,exp=exp) for label, exp in label2express.items()}
+        base_mapping = {label:"(?P<{name}>(?:{exp})+)".format(name=label,exp=exp) for label, exp in label2express.items()}
             
         regexps = []
         for template in self.templates:
