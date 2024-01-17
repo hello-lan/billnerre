@@ -14,7 +14,7 @@ def join_entities_as_regexp(entities):
 
 
 
-## 抽象基类：抽取器
+## 抽象基类（接口）：抽取器
 class Extractor(ABC):
     @abstractclassmethod
     def extract(self, text, labels):
@@ -116,6 +116,7 @@ class MultiSubjectExtractor(Extractor):
         for info in labels:
             label_name = info["label_name"]
             entity = info["text"]
+            entity = entity.replace("\\",'\\\\')
             label2entities[label_name].add(entity)        
 
         patterns = self._build_regexp_patterns(label2entities)
@@ -237,6 +238,7 @@ class TemplateExtractor:
         for info in labels:
             label_name = info["label_name"]
             entity = info["text"]
+            entity = entity.replace("\\",'\\\\')
             label2entities[label_name].add(entity)      
 
         patterns = self._build_regexp_patterns(label2entities)
