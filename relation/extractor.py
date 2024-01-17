@@ -99,7 +99,8 @@ class MultiSubjectExtractor(Extractor):
         # prepare regexps
         label2regexp = dict()
         for label_name, entities in label2entities.items():
-            label2regexp[label_name] = "({regexp})".format(regexp="|".join(entities))
+            ents = sorted(entities,key=lambda x:len(x), reverse=True)  # 按字符数量从多到少排序
+            label2regexp[label_name] = "({regexp})".format(regexp="|".join(ents))
         # 
         for item in items:
             for label_name in item.keys():
@@ -252,13 +253,14 @@ class IntegrateExtractor(Extractor):
     def __init__(self, multival_label=None):
         self.multival_label = multival_label
 
-    def _preprocess_labels(self, labels):
-        return labels
+    def _preprocessing(self, text,labels):
+        return text, labels
 
-    def _check_label_names(self, labels:list):
+    def _checking_condition(self, text:str, labels:list):
         """ 使用IntegrateExtractor需要确保除了标签multival_label外，其他标签名唯一
         """
-        counter = Counter(labels)
+        label_names = [item["label_name"] for item in labels]
+        counter = Counter(label_names)
         dumplcates = {k:v for k,v in counter.items() if v > 1}  # 重复出现的标签类型及其出现次数
         if self.multival_label is None:
             return len(dumplcates) == 0
@@ -268,10 +270,9 @@ class IntegrateExtractor(Extractor):
             return False
 
     def extract(self, text, labels):
-        label_names = [item["label_name"] for item in labels]
-        if not self._check_label_names(label_names):
-            return None
-        labels_ = self._preprocess_labels(labels)
+        if not self._checking_condition(text, labels):
+            return []
+        text_, labels_ = self._preprocessing(text, labels)
         item = {item["label_name"]:item["text"] for item in labels_}
         if self.multival_label is not None:
             multival_label = self.multival_label
@@ -295,18 +296,37 @@ class CombineExtractor(Extractor):
         return [item]
 
 
-class MulitDueExtractor(Extractor):
+class MultiDueExtractor(Extractor):
     """多个票据期限（其他标签唯一）的关系抽取器
     """
     def __init__(self,special_patterns=None):
-        self.combine_extractor = CombineExtractor(multival_label="票据期限")
+        self.integrate_extractor = IntegrateExtractor(multival_label="票据期限")
         self.templates_extractor = TemplateExtractor(special_patterns)
 
     def extract(self, text, labels):
-        rst = self.templates_extractor.extract(text, labels)
-        if len(rst) == 0:
-            rst = self.combine_extractor.extract(text, labels)
-        return rst
+        rst_1 = self.integrate_extractor.extract(text, labels)
+        rst_2 = self.templates_extractor.extract(text, labels)
+        return rst_2 if len(rst_1) > 0 and len(rst_2) > 0 else rst_1
+
+
+class MultiAmtExtractor(IntegrateExtractor):
+    """多个金额（其他标签唯一）的关系抽取器
+    """
+    def __init__(self):
+        super().__init__(multival_label="金额")
+
+    def _checking_condition(self, text: str, labels: list):
+        cond_1 = super()._checking_condition(text,labels)
+        cond_2 = re.search("单张\d+",text)
+        return cond_1 and cond_2
+
+    def _preprocessing(self, text, labels):
+        amts = [label["text"] for label in labels if label["label_name"]==self.multival_label]
+        exp = "|".join(amts)
+        price_exp = "单张(%s)"%exp
+        prices = re.findall(price_exp, text)
+        new_labels = list(filter(lambda x:x["text"] not in prices, labels))
+        return text, new_labels
 
 
            

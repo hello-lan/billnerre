@@ -3,8 +3,8 @@ from collections import Counter
 
 from utils import split as Spliter
 from utils.file_io import load_json,save_json
-from relation.extractor import (MultiSubjectExtractor, CombineExtractor,
-                                MulitDueExtractor, IntegrateExtractor)
+from relation.extractor import (MultiSubjectExtractor, MultiAmtExtractor,
+                                MultiDueExtractor, IntegrateExtractor)
 
 
 def extract_publisher_org(labels):
@@ -60,7 +60,7 @@ class RelationExtractorManager:
                 continue
             for j, extractor in enumerate(self.rela_extractors):
                 rst_items = extractor.extract(sub_text, sub_labels)
-                if rst_items is not None:
+                if len(rst_items) > 0:
                     # 补充其他要素
                     txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
                     for rst in rst_items:
@@ -124,37 +124,37 @@ class RelationExtractorManager:
         uniq_subject_extractor = IntegrateExtractor()
         multi_discounter_extractor = IntegrateExtractor("贴现人")
         multi_accptor_extractor = IntegrateExtractor("承兑人")
-        multi_amt_extractor = IntegrateExtractor("金额")
+        multi_amt_extractor = MultiAmtExtractor()
 
-        special_muli_due_pattern = [
+        special_multi_due_pattern = [
             "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}和{票据期限2}票",
             "(?<!卖|买|托)【?(?P<交易方向>出|收|买|卖)[.】：\w]{{0,3}}?{票据期限1}{承兑人1}\s*或者{票据期限2}",
         ]
-        multi_due_extractor = MulitDueExtractor(special_muli_due_pattern)
+        multi_due_extractor = MultiDueExtractor(special_multi_due_pattern)
 
-        mulisubject_extractor = MultiSubjectExtractor()
-        mulisubject_extractor.add_rule("{票据期限}（?{承兑人}）?")
-        mulisubject_extractor.add_rule("{票据期限}{利率}{承兑人}")
-        mulisubject_extractor.add_rule("{票据期限}{承兑人}{金额}")
-        mulisubject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
-        mulisubject_extractor.add_rule("{票据期限}{贴现人}直?贴（?{承兑人}）?")
-        mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
-        mulisubject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}承兑票{金额}")
-        mulisubject_extractor.add_rule("{承兑人}\s*{金额}")
-        mulisubject_extractor.add_rule("{承兑人}{票据期限}{金额}")
-        mulisubject_extractor.add_rule("{贴现人}贴{承兑人}（?{金额}）?")
-        mulisubject_extractor.add_rule("{贴现人}直?贴{承兑人}")
-        mulisubject_extractor.add_rule("{金额}{票据期限}{承兑人}")
-        mulisubject_extractor.add_rule("{金额}{票据期限}{贴现人}贴{承兑人}")
-        mulisubject_extractor.add_rule("{金额}{承兑人}")
-        mulisubject_extractor.add_rule("{利率}{承兑人}")
-        mulisubject_extractor.add_rule("{承兑人}{利率}")
-        mulisubject_extractor.add_rule("{承兑人}{票据期限}") # 票据期限主要为`托收`
-        mulisubject_extractor.add_rule("{票据期限}各类票")
-        mulisubject_extractor.add_rule("{利率}出{承兑人}{金额}，{贴现人}贴")
-        mulisubject_extractor.add_rule("收{票据期限}[；;]")
-        mulisubject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
-        mulisubject_extractor.add_rule("收{承兑人}、")
+        multi_subject_extractor = MultiSubjectExtractor()
+        multi_subject_extractor.add_rule("{票据期限}（?{承兑人}）?")
+        multi_subject_extractor.add_rule("{票据期限}{利率}{承兑人}")
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}{金额}")
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}直?贴（?{承兑人}）?")
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}承兑票{金额}")
+        multi_subject_extractor.add_rule("{承兑人}\s*{金额}")
+        multi_subject_extractor.add_rule("{承兑人}{票据期限}{金额}")
+        multi_subject_extractor.add_rule("{贴现人}贴{承兑人}（?{金额}）?")
+        multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}")
+        multi_subject_extractor.add_rule("{金额}{票据期限}{承兑人}")
+        multi_subject_extractor.add_rule("{金额}{票据期限}{贴现人}贴{承兑人}")
+        multi_subject_extractor.add_rule("{金额}{承兑人}")
+        multi_subject_extractor.add_rule("{利率}{承兑人}")
+        multi_subject_extractor.add_rule("{承兑人}{利率}")
+        multi_subject_extractor.add_rule("{承兑人}{票据期限}") # 票据期限主要为`托收`
+        multi_subject_extractor.add_rule("{票据期限}各类票")
+        multi_subject_extractor.add_rule("{利率}出{承兑人}{金额}，{贴现人}贴")
+        multi_subject_extractor.add_rule("收{票据期限}[；;]")
+        multi_subject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
+        multi_subject_extractor.add_rule("收{承兑人}、")
     
         extractors = [
             uniq_subject_extractor,
@@ -162,7 +162,7 @@ class RelationExtractorManager:
             multi_accptor_extractor,
             multi_amt_extractor,
             multi_due_extractor,
-            mulisubject_extractor
+            multi_subject_extractor
         ]
 
         manager = cls(extractors)
