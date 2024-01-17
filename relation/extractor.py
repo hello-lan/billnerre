@@ -7,6 +7,7 @@ from abc import ABC, abstractclassmethod
 def join_entities_as_regexp(entities):
     """将多个具有相同标签的实体拼接得到一个正则表达式
     """
+    entities = sorted(entities,key=lambda x:len(x), reverse=True)
     connector_express = "[、,，\s及和/+或者至-]{0,3}"       # 实体间的关联符号的真正表达式
     _entities = [connector_express + ent for ent in entities]
     regexp = "|".join(_entities)
@@ -19,6 +20,10 @@ class Extractor(ABC):
     @abstractclassmethod
     def extract(self, text, labels):
         pass
+
+    def __str__(self):
+        return self.__class__.__name__
+   
 
 
 class MultiSubjectExtractor(Extractor):
@@ -44,6 +49,8 @@ class MultiSubjectExtractor(Extractor):
         # 1.准备待填充的要素（正则表达式形式）
         mapping = dict()
         for k, v in tags.items():
+            if k == "贴现人":
+                v = [vv+"贴?" for vv in v]
             if k in ("承兑人","贴现人","票据期限"):
                 val = join_entities_as_regexp(v)
                 val = "((?:%s)+)"%val
@@ -141,7 +148,7 @@ class MultiSubjectExtractor(Extractor):
         return items
 
 
-class TemplateExtractor:
+class TemplateExtractor(Extractor):
     """ 模板抽取器
     """
     def __init__(self, templates:list=None):
@@ -159,6 +166,8 @@ class TemplateExtractor:
     def _build_regexp_patterns(self, tags):
         label2express = dict()
         for k, v in tags.items():
+            if k == "贴现人":
+                v = [vv+"贴?" for vv in v]
             if k in ("承兑人","贴现人","票据期限"):
                 val = join_entities_as_regexp(v)
                 val = "(?:%s)+"%val
