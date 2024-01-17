@@ -67,9 +67,9 @@ class RelationExtractorManager:
                         if "交易方向" not in rst:
                             rst.update(txn_dir)   # 添加交易方向 
                     # 保存结果
-                    method = str(extractor)
+                    ext = str(extractor)
                     method = j+1
-                    result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method))
+                    result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method, ext=ext))
                     # 跳出
                     break
             else:
@@ -91,6 +91,8 @@ class RelationExtractorManager:
 
         multi_subject_extractor = MultiSubjectExtractor()
         multi_subject_extractor.add_rule("{票据期限}（?{承兑人}）?")
+        multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}{承兑人}")
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}（{贴现人}.{{0,3}}）")
         multi_subject_extractor.add_rule("{票据期限}{利率}{承兑人}")
         multi_subject_extractor.add_rule("{票据期限}{承兑人}{金额}")
         multi_subject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
@@ -101,9 +103,11 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("{承兑人}{票据期限}{金额}")
         multi_subject_extractor.add_rule("{贴现人}贴{承兑人}（?{金额}）?")
         multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}")
+        multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}{利率}")
         multi_subject_extractor.add_rule("{金额}{票据期限}{承兑人}")
         multi_subject_extractor.add_rule("{金额}{票据期限}{贴现人}贴{承兑人}")
         multi_subject_extractor.add_rule("{金额}{承兑人}")
+        multi_subject_extractor.add_rule("{金额}{承兑人}{票据期限}")
         multi_subject_extractor.add_rule("{利率}{承兑人}")
         multi_subject_extractor.add_rule("{承兑人}{利率}")
         multi_subject_extractor.add_rule("{承兑人}{票据期限}") # 票据期限主要为`托收`
@@ -112,8 +116,24 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("收{票据期限}[；;]")
         multi_subject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
         multi_subject_extractor.add_rule("收{承兑人}、")
+        12月电商（浙商直贴）
 
-        template_extractor = TemplateExtractor()
+        temps = [
+            "{利率1}量?(?P<交易方向1>出|收|买|卖){承兑人1}{票据期限1}，{利率2}量?(?P<交易方向2>出|收|买|卖){承兑人2}{票据期限2}",
+            "(?P<交易方向>出|收|买|卖){票据期限1}为主的{贴现人1}贴{承兑人1}及{票据期限2}{贴现人2}贴{承兑人}",
+            "(?P<交易方向>出|收|买|卖){票据期限}\s*{贴现人}直?贴\s*{承兑人1}{金额1}{利率1}\+{承兑人2}{金额2}{利率2}",
+            "(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人1}，{承兑人2}{利率2}，{承兑人3}{利率3}",
+            "(?P<交易方向>出|收|买|卖){票据期限}{贴现人1}贴{承兑人1}，{贴现人2}贴{承兑人2}",
+            "(?P<交易方向>出|收|买|卖){票据期限1}{金额1}、{票据期限2}{金额2}\s*{承兑人}",
+
+        ]
+        # "1、收9月为主的国贴城农及12月国贴财司、电商，可单张过亿，欢迎清单来",
+        # "出 11月份 渤海直贴  齐鲁1140万1.50%+国股2440万1.40%   打包一起出"
+        # "收四季度国贴城农电商，城农1.35+，电商1.45+",
+        "2、出12月国贴五大，国贴大商（浙商、江苏）"
+        "出 2月1132万、3月1460万  双国"
+        
+        template_extractor = TemplateExtractor(temps)
     
         extractors = [
             uniq_subject_extractor,
@@ -121,7 +141,7 @@ class RelationExtractorManager:
             multi_accptor_extractor,
             multi_amt_extractor,
             multi_due_extractor,
-            # template_extractor,
+            template_extractor,
             multi_subject_extractor
         ]
 
@@ -177,6 +197,7 @@ def test():
     tmp_04 = map(pop_labels,filter(lambda x: x["method"]==4, tmp))
     tmp_05 = map(pop_labels,filter(lambda x: x["method"]==5, tmp))
     tmp_06 = map(pop_labels,filter(lambda x: x["method"]==6, tmp))
+    tmp_07 = map(pop_labels,filter(lambda x: x["method"]==7, tmp))
 
     def is_complete(item):
         labels = item["labels"]
@@ -190,24 +211,19 @@ def test():
             elif isinstance(e, str):
                 entities_02.append(e)
         y = set(entities_01) - set(entities_02)
-        return len(y)  > 0 and item["method"]==6
+        return len(y)  > 0 and item["method"]==7
     
-    tmp_07 = map(pop_labels,(filter(is_complete, tmp)))
+    tmp_08 = map(pop_labels,filter(is_complete, tmp))
 
-    path01 = "cache/extract_test_1.json"
-    path02 = "cache/extract_test_2.json"
-    path03 = "cache/extract_test_3.json"
-    path04 = "cache/extract_test_4.json"
-    path05 = "cache/extract_test_5.json"
-    path06 = "cache/extract_test_6.json"
-    path07 = "cache/extract_test_7.json"
-    save_json(list(tmp_01), path01)
-    save_json(list(tmp_02), path02)
-    save_json(list(tmp_03), path03)
-    save_json(list(tmp_04), path04)
-    save_json(list(tmp_05), path05)
-    save_json(list(tmp_06), path06)
-    save_json(list(tmp_07), path07)
+
+    save_json(list(tmp_01), "cache/extract_test_1.json")
+    save_json(list(tmp_02), "cache/extract_test_2.json")
+    save_json(list(tmp_03), "cache/extract_test_3.json")
+    save_json(list(tmp_04), "cache/extract_test_4.json")
+    save_json(list(tmp_05), "cache/extract_test_5.json")
+    save_json(list(tmp_06), "cache/extract_test_6.json")
+    save_json(list(tmp_07), "cache/extract_test_7.json")
+    save_json(list(tmp_08), "cache/extract_test_8.json")
 
 
 
