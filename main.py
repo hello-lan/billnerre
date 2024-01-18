@@ -11,7 +11,7 @@ from config import Config
 from utils.file_io import load_json,save_json
 from utils.metric import SeqEntityScore
 from utils.logger import logger, init_logger
-from utils import get_or_build_vocab, load_pretrained_vocab_embedding, DatasetLoader, ProgressBar, AverageMeter
+from utils import VocabularyBuilder,load_pretrained_vocab_embedding, DatasetLoader, ProgressBar, AverageMeter
 from utils.mix import get_entities
 
 
@@ -124,8 +124,8 @@ def predict(model,vocab,conf):
 
 
 def extract(model, vocab, conf):
-    from rela_extract import create_extractor
-    rela_extractor = create_extractor()
+    from rela_extract import RelationExtractorManager
+    rela_ext_manager = RelationExtractorManager.of_default()
 
     data = load_json(conf.eval_data_path)
     model.eval()
@@ -148,7 +148,7 @@ def extract(model, vocab, conf):
             items.append(item)
         rst = dict(text=text, labels=items)
         # 关系抽取
-        extract_items = rela_extractor.extract_relation(text,items)
+        extract_items = rela_ext_manager.extract_relation(text,items)
         tmp.extend(extract_items)
     
     save_path = "cache/ner_relation_result.json"
@@ -179,7 +179,7 @@ def main(task, model, gpu, pretrained,revocab):
         conf.embeding_size= embedding.shape[1]
     else:
         click.echo("加载或创建vocabulary...")
-        vocab = get_or_build_vocab(conf,rebuild=revocab)
+        vocab = VocabularyBuilder.get_or_build_vocab(conf,rebuild=revocab)
 
     if task == "train":
         ner_model = BiLSTM_CRF(vocab_size=len(vocab),
@@ -203,11 +203,11 @@ def main(task, model, gpu, pretrained,revocab):
     if task == "eval":
         pass
     if task == "predict":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240104.pth")
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240118.pth")
         predict(ner_model, vocab, conf)
 
     if task == "extract":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240104.pth")
+        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240118.pth")
         extract(ner_model, vocab, conf)
 
 

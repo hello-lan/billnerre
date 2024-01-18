@@ -34,6 +34,8 @@ class Config:
     vocab_path = 'data/vocab_msg.pkl'
     cache_dir = 'cache'
 
+    vocabulary_builder_init_kwargs = {"min_freq":2}
+    
     markup = 'bios'
 
     # 训练参数
@@ -51,6 +53,7 @@ class Config:
     # 模型标签参数
     label2id = {label:i for i, label in enumerate(labels)}
     id2label = {i:label for i, label in enumerate(labels)}
+
 
 
 

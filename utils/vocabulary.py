@@ -29,7 +29,7 @@ class Vocabulary:
         '''
         if word in self.word2idx:
             return self.word2idx[word]
-        if self.unk_token is not None:
+        elif self.unk_token is not None:
             return self.word2idx[self.unk_token]
         else:
             raise ValueError("word {} not in vocabulary".format(word))
@@ -121,7 +121,7 @@ class VocabularyBuilder(object):
         word2idx = self.create_init_word2id()
         max_size = min(self.max_size, len(self.word_counter)) if self.max_size else None
         words = self.word_counter.most_common(max_size)
-        if self.min_freq is not None:
+        if isinstance(self.min_freq,int):
             words = filter(lambda kv: kv[1] >= self.min_freq, words)
         for w, _ in words:
             if w not in word2idx:
@@ -136,20 +136,21 @@ class VocabularyBuilder(object):
         """
         self.word_counter.clear()
 
-        
-def get_or_build_vocab(conf, rebuild=False):
-    vocab_path = conf.vocab_path
-    if os.path.exists(vocab_path) and not rebuild:
-        print("load_vocab....")
-        vocab = Vocabulary.load_from_file(vocab_path)
-    else:
-        builder = VocabularyBuilder()
-        fpaths = [conf.train_data_path]
-        for fpath in fpaths:
-            data = load_json(fpath)
-            for item in data:
-                text = item['text']
-                builder.update(list(text))
-        vocab = builder.build_vocab()
-        vocab.save(vocab_path)
-    return vocab
+    @classmethod        
+    def get_or_build_vocab(cls, conf, rebuild=False):
+        vocab_path = conf.vocab_path
+        if os.path.exists(vocab_path) and not rebuild:
+            print("load_vocab....")
+            vocab = Vocabulary.load_from_file(vocab_path)
+        else:
+            kwargs = conf.vocabulary_builder_init_kwargs
+            builder = cls(**kwargs)
+            fpaths = [conf.train_data_path]
+            for fpath in fpaths:
+                data = load_json(fpath)
+                for item in data:
+                    text = item['text']
+                    builder.update(list(text))
+            vocab = builder.build_vocab()
+            vocab.save(vocab_path)
+        return vocab

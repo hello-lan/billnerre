@@ -77,7 +77,7 @@ class RelationExtractorManager:
         return result
     
     @classmethod
-    def create_rela_extrator(cls):
+    def of_default(cls):
         uniq_subject_extractor = IntegrateExtractor()
         multi_discounter_extractor = IntegrateExtractor("贴现人")
         multi_accptor_extractor = IntegrateExtractor("承兑人")
