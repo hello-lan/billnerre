@@ -91,6 +91,7 @@ class RelationExtractorManager:
 
         multi_subject_extractor = MultiSubjectExtractor()
         multi_subject_extractor.add_rule("{票据期限}（?{承兑人}）?")
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}")
         multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}{承兑人}")
         multi_subject_extractor.add_rule("{票据期限}{承兑人}（{贴现人}.{{0,3}}）")
         multi_subject_extractor.add_rule("{票据期限}{利率}{承兑人}")
@@ -112,10 +113,12 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("{承兑人}{利率}")
         multi_subject_extractor.add_rule("{承兑人}{票据期限}") # 票据期限主要为`托收`
         multi_subject_extractor.add_rule("{票据期限}各类票")
-        multi_subject_extractor.add_rule("{利率}出{承兑人}{金额}，{贴现人}贴")
+        multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){承兑人}{金额}，{贴现人}贴")
         multi_subject_extractor.add_rule("收{票据期限}[；;]")
-        multi_subject_extractor.add_rule("{利率}出{票据期限}{贴现人}贴{承兑人}{金额}")
+        multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人}{金额}")
+        multi_subject_extractor.add_rule("{利率}量?(?P<交易方向>出|收|买|卖){承兑人}{票据期限}")
         multi_subject_extractor.add_rule("收{承兑人}、")
+
 
         temps = [
             "{利率1}量?(?P<交易方向1>出|收|买|卖){承兑人1}{票据期限1}，{利率2}量?(?P<交易方向2>出|收|买|卖){承兑人2}{票据期限2}",
@@ -149,7 +152,7 @@ class RelationExtractorManager:
 
 
 def load_test_data():
-    path = "../corpus/Step2_已标注语料/final/WJQ_0104_final_2799.json"
+    path = "../corpus/Step2_已标注语料/final/WJQ_0118_final_2799.json"
     data = load_json(path)
     #
     new_data = []
@@ -190,13 +193,19 @@ def test():
         item_new.pop("labels")
         return item_new
     
+    def pop_matched_info(item):
+        item_new = dict(item)
+        for it in item_new["output"]:
+            it.pop("matched_info")
+        return item_new
+    
     tmp_01 = map(pop_labels,filter(lambda x: x["method"]==1, tmp))
     tmp_02 = map(pop_labels,filter(lambda x: x["method"]==2, tmp))
     tmp_03 = map(pop_labels,filter(lambda x: x["method"]==3, tmp))
     tmp_04 = map(pop_labels,filter(lambda x: x["method"]==4, tmp))
     tmp_05 = map(pop_labels,filter(lambda x: x["method"]==5, tmp))
     tmp_06 = map(pop_labels,filter(lambda x: x["method"]==6, tmp))
-    tmp_07 = map(pop_labels,filter(lambda x: x["method"]==7, tmp))
+    tmp_07 = map(pop_matched_info,map(pop_labels,filter(lambda x: x["method"]==7, tmp)))
 
     def is_complete(item):
         labels = item["labels"]

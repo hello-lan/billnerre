@@ -50,8 +50,10 @@ class MultiSubjectExtractor(Extractor):
             if k == "贴现人":
                 v = [vv+"贴?" for vv in v]
                 val = join_entities_as_regexp(v, prefix="/?")
-            elif k in ("承兑人","票据期限"):
-                val = join_entities_as_regexp(v, prefix="[、,，\s及和/+或者至-]{0,3}",sufix="(?!贴)")
+            elif k == "承兑人":
+                val = join_entities_as_regexp(v, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?!贴)")
+            elif k == "票据期限":
+                val = join_entities_as_regexp(v, prefix="",sufix="[\.\s、，及和至或者\-+/]*")
             else:
                 val =  join_entities_as_regexp(v)
             mapping[k] = "(?P<{name}>(?:{exp})+)".format(name=k,exp=val)
@@ -83,7 +85,9 @@ class MultiSubjectExtractor(Extractor):
         if m:
             item = m.groupdict()
             # item = {k:v for k,v in item.items() if v is not None}        # 过滤None值
-            item["matched_info"] = dict(pattern=pattern.pattern, span=m.span())  # 正则表达式匹配信息
+            sub_text = m.group()
+            first_ent_idx = min([sub_text.find(s) + m.start() for s in item.values()])  # 提取到第一个的实体开始位置
+            item["matched_info"] = dict(pattern=pattern.pattern, span=m.span(), first_ent_idx=first_ent_idx)  # 正则表达式匹配信息
             return item
         else:
             return dict()
@@ -92,10 +96,11 @@ class MultiSubjectExtractor(Extractor):
         items = [self.re_extract(p, text) for p in re_patterns]
         items = [item for item in items if len(item) > 0]
         if len(items) > 0:
-            item = max(items, key=lambda x:len(x))
+            # item = max(items, key=lambda x:len(x))  
+            item = max(items, key=lambda x:(-x["matched_info"]["first_ent_idx"],len(x)))  # 按元素数量大小，位置前后 排序去第一个
             # 把已经匹配成功要素在原text中剔除（用`$$$$$$$$`替换），再重新放回进行正则抽取
             start, end = item["matched_info"]["span"]
-            new_text = text[:start] + "$$$$$$$$$$$"   + text[end:]
+            new_text = text[:start] + "$"*(end-start)   + text[end:]
             return [item] + self._extract(new_text, re_patterns)
         else:
             return []
@@ -167,8 +172,10 @@ class TemplateExtractor(Extractor):
             if k == "贴现人":
                 v = [vv+"贴?" for vv in v]
                 val = join_entities_as_regexp(v, prefix="/?")
-            elif k in ("承兑人","票据期限"):
-                val = join_entities_as_regexp(v, prefix="[、,，\s及和/+或者至-]{0,3}", sufix="(?!贴)")
+            elif k == "承兑人":
+                val = join_entities_as_regexp(v, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?!贴)")
+            elif k == "票据期限":
+                val = join_entities_as_regexp(v, prefix="",sufix="[\.\s、，及和至或者\-+/]*")
             else:
                 val = join_entities_as_regexp(v)
             label2express[k] = val
@@ -291,19 +298,6 @@ class IntegrateExtractor(Extractor):
     def __str__(self):
         return "{cls_name}(multival_label={arg})".format(cls_name=self.__class__.__name__, arg=self.multival_label)
     
-
-class CombineExtractor(Extractor):
-    """组合关系抽取器，把出现的标签直接组合成一组抽取信息"""
-    def __init__(self, multival_label=None):
-        self.multival_label = multival_label
-
-    def extract(self, text, labels):
-        item = {item["label_name"]:item["text"] for item in labels}
-        if self.multival_label is not None:
-            multival_label = self.multival_label
-            item[multival_label] = [item["text"] for item in labels if item["label_name"]==multival_label]
-        return [item]
-
 
 class MultiDueExtractor(Extractor):
     """多个票据期限（其他标签唯一）的关系抽取器
