@@ -35,6 +35,24 @@ class RelationExtractorManager:
     """
     def __init__(self, extractors:list):
         self.rela_extractors = extractors
+
+    def _extract_root_trading_direction(self, text, labels):
+        """ 抽取以下文本形式中的交易方向
+        -----
+        ydyh : 买断：
+        9-12月国贴城商
+        卖断：
+        7-9月国股，7月兰州（国贴）
+        8-9月重庆/东莞/郑州/成都（国贴）
+        9月北部湾，海峡，桂林（城商贴）
+        晋商王鑫18635439096
+        ------
+        """
+        m = re.search("(?<!卖|买|托)(?P<交易方向>买断|卖断|出|收)[】：:]$", text.rstrip())
+        if len(labels)==0 and len(text.strip()) <= 5 and m:
+            return m.groupdict()
+        else:
+            return None
        
     def extract_relation(self, text, labels):
         """关系抽取"""
@@ -51,21 +69,29 @@ class RelationExtractorManager:
         # 切分消息内容
         items = Spliter.split_msg(msg_text, msg_labels)
     
+        root_trading_dir = dict()
         for item in items:
             sub_text, sub_labels = item['text'], item["labels"]
-            label_names = [item["label_name"] for item in sub_labels]
+            # 判断并抽取总领下文出现的实体的的交易方向
+            _root_trading_dir = self._extract_root_trading_direction(sub_text, sub_labels)
+            if _root_trading_dir is not None:
+                root_trading_dir = _root_trading_dir
             # 若无标签，则跳过
+            label_names = [item["label_name"] for item in sub_labels]
             if len(label_names) == 0:
                 continue
             for j, extractor in enumerate(self.rela_extractors):
                 rst_items = extractor.extract(sub_text, sub_labels)
                 if len(rst_items) > 0:
                     # 补充其他要素
-                    txn_dir = extract_trading_direction(sub_text)   # 抽取交易方向
+                    trading_dir = extract_trading_direction(sub_text)   # 抽取交易方向
+                    if len(trading_dir)==0 or trading_dir.get("交易方向") is None:
+                        trading_dir = root_trading_dir
                     for rst in rst_items:
                         rst.update(org_item)  # 添加发布者所属机构
+                        # 填充交易方向
                         if "交易方向" not in rst:
-                            rst.update(txn_dir)   # 添加交易方向 
+                            rst.update(trading_dir)   # 添加交易方向 
                     # 保存结果
                     ext = str(extractor)
                     method = j+1
@@ -122,7 +148,7 @@ class RelationExtractorManager:
 
         temps = [
             "{利率1}量?(?P<交易方向1>出|收|买|卖){承兑人1}{票据期限1}，{利率2}量?(?P<交易方向2>出|收|买|卖){承兑人2}{票据期限2}",
-            "(?P<交易方向>出|收|买|卖){票据期限1}为主的{贴现人1}贴{承兑人1}及{票据期限2}{贴现人2}贴{承兑人}",
+            "(?P<交易方向>出|收|买|卖){票据期限1}为主的{贴现人1}贴{承兑人1}及{票据期限2}{贴现人2}贴{承兑人2}",
             "(?P<交易方向>出|收|买|卖){票据期限}\s*{贴现人}直?贴\s*{承兑人1}{金额1}{利率1}\+{承兑人2}{金额2}{利率2}",
             "(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人1}，{承兑人2}{利率2}，{承兑人3}{利率3}",
             "(?P<交易方向>出|收|买|卖){票据期限}{贴现人1}贴{承兑人1}，{贴现人2}贴{承兑人2}",
@@ -178,7 +204,7 @@ def load_test_data():
 
 
 def test():
-    manager = RelationExtractorManager.create_rela_extrator()
+    manager = RelationExtractorManager.of_default()
     # 加载数据
     data = load_test_data()
     tmp = []

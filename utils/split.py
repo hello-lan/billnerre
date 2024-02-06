@@ -11,7 +11,7 @@ def split_text_labels(text, labels, split_idx):
     left_labels, right_labels = [], []
     for label_info in labels:
         info = dict(label_info)
-        if info["end"] < split_idx:
+        if info["end"] <= split_idx:
             left_labels.append(info)
         else:
             info['start'] -= split_idx
