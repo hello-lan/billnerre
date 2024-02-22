@@ -23,7 +23,7 @@ def split_text_labels(text, labels, split_idx):
 def split_publisher_vs_msg(text, labels):
     """ 分段: 发布者信息 与 消息内容"""
     i = text.find(":")
-    publisher_text, publisher_labels, msg_text, msg_labels = split_text_labels(text, labels, i+2)
+    publisher_text, publisher_labels, msg_text, msg_labels = split_text_labels(text, labels, i+1)
     return publisher_text, publisher_labels, msg_text, msg_labels
     
 

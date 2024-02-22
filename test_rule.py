@@ -5,7 +5,7 @@ from collections import defaultdict, namedtuple, Counter
 import pandas as pd
 
 from utils.file_io import load_json, save_json
-from utils import split as Spliter
+from relation.util import split as Spliter
 from relation.extractor import TemplateExtractor as ReExtractor
 
 

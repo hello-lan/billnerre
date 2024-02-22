@@ -37,6 +37,9 @@ class MultiSubjectExtractor(Extractor):
         else:
             self.rules = []
 
+    def __str__(self):
+        return self.__class__.__name__ + "(rules=[...])"
+
     def add_rule(self, rule):
         self.rules.append(rule)
 
@@ -101,6 +104,7 @@ class MultiSubjectExtractor(Extractor):
             # 把已经匹配成功要素在原text中剔除（用`$$$$$$$$`替换），再重新放回进行正则抽取
             start, end = item["matched_info"]["span"]
             new_text = text[:start] + "$"*(end-start)   + text[end:]
+            item.pop("matched_info")
             return [item] + self._extract(new_text, re_patterns)
         else:
             return []
@@ -159,6 +163,9 @@ class TemplateExtractor(Extractor):
             self.templates = templates
         else:
             self.templates = []
+
+    def __str__(self):
+        return self.__class__.__name__ + "(templates=[...])"
 
     def add_template(self, template):
         self.templates.append(template)
@@ -268,6 +275,9 @@ class IntegrateExtractor(Extractor):
     """组合关系抽取器，把出现的标签直接组合成一组抽取信息"""
     def __init__(self, multival_label=None):
         self.multival_label = multival_label
+
+    def __str__(self):
+        return self.__class__.__name__ + "(multival_label=%s)" % self.multival_label
 
     def _preprocessing(self, text,labels):
         return text, labels

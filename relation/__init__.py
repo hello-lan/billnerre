@@ -1,1 +1,1 @@
-from .extractor import MultiSubjectExtractor
+from .manager import RelationExtractorManager
