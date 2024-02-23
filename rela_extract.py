@@ -44,7 +44,7 @@ def test():
     
     def pop_labels(item):
         item_new = dict(item)
-        # item_new.pop("labels")
+        item_new.pop("labels")
         return item_new
     
     def pop_matched_info(item):
@@ -69,8 +69,11 @@ def test():
         y = set(entities_01) - set(entities_02)
         return len(y)  > 0 and item["method"]==7
     
-    # tmp_08 = map(pop_labels,filter(is_complete, tmp))
+    tmp_08 = list(map(pop_labels,filter(is_complete, tmp)))
+    save_json(tmp_08,"cache/no_complete_%s.json"%len(tmp_08))
 
+    tmp_subj = list(map(pop_labels,filter(lambda item:item["ext"] == "MultiSubjectExtractor(templates=[...])", tmp)))
+    save_json(tmp_subj,"cache/subj_%s.json"%len(tmp_subj))
 
     ## flatten data
     new_tmp = []
@@ -80,7 +83,8 @@ def test():
             new_item["output"] = rela_item 
             new_tmp.append(new_item)
     for ext in manager.rela_extractors:
-        rst_ext = list(filter(lambda item: item["ext"]==str(ext), new_tmp))
+        # rst_ext = list(filter(lambda item: item["ext"]==str(ext), new_tmp))
+        rst_ext = list(map(pop_labels,filter(lambda item: item["ext"]==str(ext), new_tmp)))
         save_json(rst_ext,"cache/%s_%s.json"%(str(ext),len(rst_ext)))
 
 

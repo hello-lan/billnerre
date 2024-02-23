@@ -96,8 +96,8 @@ class RelationExtractorManager:
                     # 保存结果
                     ext = str(extractor)
                     method = j+1
-                    # result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method, ext=ext))
-                    result.append(dict(text=sub_text,output=rst_items,raw_text=text,method=method, ext=ext))
+                    result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method, ext=ext))
+                    # result.append(dict(text=sub_text,output=rst_items,raw_text=text,method=method, ext=ext))
                     # 跳出
                     break
             else:
@@ -123,21 +123,20 @@ class RelationExtractorManager:
         multi_subject_extractor = MultiSubjectExtractor()
         multi_subject_extractor.add_rule("{票据期限}（?{承兑人}）?")
         multi_subject_extractor.add_rule("{票据期限}{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}（{贴现人}.{{0,3}}）")
+        multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}?{承兑人}") # "2、有拓客需求的小伙伴，来约一个托收啊，只收近期到期的国股大商的大票托收，主打一个缘分交易",
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}（{贴现人}.{{0,3}}）")  ## ->（{贴现人}.{{0,3}}贴） ？？
         multi_subject_extractor.add_rule("{票据期限}{利率}{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}{金额}")
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}\s*{金额}")
         multi_subject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
         multi_subject_extractor.add_rule("{票据期限}{贴现人}直?贴（?{承兑人}）?")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
         multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
         multi_subject_extractor.add_rule("{承兑人}\s*{金额}")
         multi_subject_extractor.add_rule("{承兑人}{票据期限}{金额}")
         multi_subject_extractor.add_rule("{贴现人}贴{承兑人}（?{金额}）?")
         multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}")
         multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}{利率}")
-        multi_subject_extractor.add_rule("{金额}{票据期限}{承兑人}")
-        multi_subject_extractor.add_rule("{金额}{票据期限}{贴现人}贴{承兑人}")
+        multi_subject_extractor.add_rule("{金额}\s*{票据期限}{承兑人}")
+        multi_subject_extractor.add_rule("{金额}\s*{票据期限}{贴现人}贴{承兑人}")
         multi_subject_extractor.add_rule("{金额}{承兑人}")
         multi_subject_extractor.add_rule("{金额}{承兑人}{票据期限}")
         multi_subject_extractor.add_rule("{利率}{承兑人}")
@@ -151,9 +150,34 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("收{承兑人}、")
         multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){承兑人}")
         multi_subject_extractor.add_rule("{票据期限}.{{0,2}}{贴现人}")
+        # new
         multi_subject_extractor.add_rule("{票据期限}[：]*{承兑人}")
         multi_subject_extractor.add_rule("{票据期限}{贴现人}{承兑人}")
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}{承兑人}承兑票{金额}")
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}直?贴{承兑人}{金额}{利率}")
+        multi_subject_extractor.add_rule("{承兑人}{金额}{利率}")
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}(?:或者承兑授信)?{承兑人}")  # !!"2、捡漏收收1月.3月国贴或者承兑授信城农，财司，电商票，欢迎都清单报价",
+        multi_subject_extractor.add_rule("{贴现人}贴{承兑人}{利率}")# " 继续降价收1月！国贴五大132、普国133、f134，其余相应加点！额度1亿，挑授信，",
+        multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}?{承兑人}{金额}")   
+        multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}（单张{金额}）")    #  2月国贴上汽财司（单张3500万元）
+        multi_subject_extractor.add_rule("{承兑人}{贴现人}")
+       
+       # （Done）"出10月出国股城商3350万元、11-12月中行、兰州",
+       # （Done）"出足月东营（农贴）南粤，长安，北部湾民贴"
+       #!! " [拥抱]收托收，银票9.23-9.28期间1.85%，财票商票9.23-9.27期间1.95%~",
+    
+        # （Done）贴前出12月邮储贴赣州、贵阳、湖北、九江承兑票2200万
+        # （Done）"出半年秦农 5000 、齐商 4000、莱商2000、海南5000、潍坊4500、威海5000；"
+        # （Done）"3     12月份到期  恒丰500+天津3000",
+        # （Done）"【出】10月双国股，10-12月大商、国贴城农。"
+        # （Done）"出2K 12月国贴上海，5k 12月双南京。",
+        # （Done） "出 11月份 渤海直贴  齐鲁1140万1.50%+国股2440万1.40%   打包一起出",
+        # （Done）"海岳 : 出8、10-11月国股大商城农商财司，11月中信、宁波直贴电商",
 
+       # "（Done） 【收】1月、3月国股大商小票、城农商、电商财司",   --> join
+        
+        # ！！" 打包出1900万9月义乌农、10月杭州联合，广发贴",  VS  # "1月长安（城贴），1月烟台/泰安/齐商/东营，民贴",
+       
 
         temps = [
             "{利率1}量?(?P<交易方向1>出|收|买|卖){承兑人1}{票据期限1}，{利率2}量?(?P<交易方向2>出|收|买|卖){承兑人2}{票据期限2}",
