@@ -258,23 +258,35 @@ class MultiSubjectExtractor(TemplateExtractor):
         
     def extract(self, text, labels):
         items = super().extract(text, labels)
-        #case 1 如果没有提取到贴现人（贴现人在最后）
-        discounter_items = list(filter(lambda x:"贴现人" in x, items))
         labels = sorted(labels, key=lambda x:x["start"])   # 按索引位置排序
-        # discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels[-2:])   # 最后两个标签
-        discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels)   # 最后两个标签
-        discounters = list(map(lambda x:x["text"],discounter_labels))
-        if len(discounter_items)==0 and len(discounters) > 0:
-            for item in items:
-                item["贴现人"] = discounters
-        # case 2:如果没有提取到票据期限（票据期限在第一个位置)
-        # due_items = list(filter(lambda x:"票据期限" in x, items))
-        # first_label = labels[0]
-        # if first_label["label_name"] == "票据期限" and len(due_items) == 0:
+        #case 1 如果没有提取到贴现人（贴现人在最后）
+        # discounter_items = list(filter(lambda x:"贴现人" in x, items))
+        # # discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels[-2:])   # 最后两个标签
+        # discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels)   # 最后两个标签
+        # discounters = list(map(lambda x:x["text"],discounter_labels))
+        # if len(discounter_items)==0 and len(discounters) > 0:
         #     for item in items:
-        #         item["票据期限"] = first_label["text"]
+        #         item["贴现人"] = discounters
 
-        # 第一个抽取抽取项有票据期限，后面的都没有
+        # 贴现人在最后
+        last_discounter = []
+        for label in labels[::-1]:
+            if label["label_name"] =="贴现人":
+                last_discounter.append(label["text"])
+            else:
+                break
+
+        if len(last_discounter) > 0:
+            last_item = items[-1]
+            last_discounter = last_item.get("贴现人",last_discounter)
+            for i in range(len(items)-1,-1,-1):
+                item = items[i]
+                if i == (len(items)-1) or item.get("贴现人") is None:
+                    item["贴现人"] = last_discounter
+                else:
+                    break
+
+        # CASE 2: 第一个抽取抽取项有票据期限，后面的都没有
         pre_duetime = []
         for label in labels:
             if label["label_name"] == "票据期限":
