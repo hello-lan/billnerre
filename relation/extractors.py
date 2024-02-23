@@ -116,7 +116,8 @@ class TemplateExtractor(Extractor):
             if label == "贴现人":
                 express = join(entities, prefix="/?",sufix="贴?")
             elif label == "承兑人":
-                express = join(entities, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?!贴)")
+                # express = join(entities, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?!贴)")
+                express = join(entities, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?:小票|大票|大小票)?(?!贴)")
             elif label == "票据期限":
                 express = join(entities, prefix="",sufix="[\.\s、，及和至或者\-+/]*")
             else:
@@ -257,7 +258,7 @@ class MultiSubjectExtractor(TemplateExtractor):
         
     def extract(self, text, labels):
         items = super().extract(text, labels)
-        # 如果没有提取到贴现人（贴现人在最后）
+        #case 1 如果没有提取到贴现人（贴现人在最后）
         discounter_items = list(filter(lambda x:"贴现人" in x, items))
         labels = sorted(labels, key=lambda x:x["start"])   # 按索引位置排序
         # discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels[-2:])   # 最后两个标签
@@ -266,10 +267,21 @@ class MultiSubjectExtractor(TemplateExtractor):
         if len(discounter_items)==0 and len(discounters) > 0:
             for item in items:
                 item["贴现人"] = discounters
-        # 如果没有提取到票据期限（票据期限在第一个位置)
-        due_items = list(filter(lambda x:"票据期限" in x, items))
-        first_label = labels[0]
-        if first_label["label_name"] == "票据期限" and len(due_items) == 0:
-            for item in items:
-                item["票据期限"] = first_label["text"]
+        # case 2:如果没有提取到票据期限（票据期限在第一个位置)
+        # due_items = list(filter(lambda x:"票据期限" in x, items))
+        # first_label = labels[0]
+        # if first_label["label_name"] == "票据期限" and len(due_items) == 0:
+        #     for item in items:
+        #         item["票据期限"] = first_label["text"]
+
+        # 第一个抽取抽取项有票据期限，后面的都没有
+        pre_duetime = []
+        for label in labels:
+            if label["label_name"] == "票据期限":
+                pre_duetime.append(label["text"])
+            else:
+                break
+        for item in items:
+            pre_duetime = item.get("票据期限", pre_duetime)
+            item["票据期限"] = pre_duetime
         return items
