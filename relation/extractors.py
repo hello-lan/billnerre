@@ -119,7 +119,7 @@ class TemplateExtractor(Extractor):
                 # express = join(entities, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?!贴)")
                 express = join(entities, prefix="[、,，\s及和/+或者]{0,3}",sufix="(?:小票|大票|大小票)?(?!贴)")
             elif label == "票据期限":
-                express = join(entities, prefix="",sufix="[\.\s、，及和至或者\-+/]*")
+                express = join(entities, prefix="",sufix="[\.\s、，及和至\-+/或者少量]*")
             else:
                 express = join(entities)
             label2entity_express[label] = express

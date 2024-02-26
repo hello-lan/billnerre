@@ -21,7 +21,7 @@ def extract_publisher_org(labels):
 def extract_trading_direction(text):
     """ 抽取交易方向
     """
-    p = re.compile('[^：:、\d]{0,2}(?<!卖|买|托)(?P<交易方向>出|收|卖断|买断)\D{0,2}')
+    p = re.compile('[^：:、\d]{0,2}(?<!卖|买|托)(?P<交易方向>出|收|卖断|买断|买|卖)\D{0,2}')
     m = p.search(text)
     if m:
         return m.groupdict()
@@ -47,7 +47,7 @@ class RelationExtractorManager:
         晋商王鑫18635439096
         ------
         """
-        m = re.search("(?<!卖|买|托)(?P<交易方向>买断|卖断|出|收)[】：:]$", text.rstrip())
+        m = re.search("(?<!卖|买|托)(?P<交易方向>买断|卖断|出|收|买|卖)[】：:]$", text.rstrip())
         if len(labels)==0 and len(text.strip()) <= 5 and m:
             return m.groupdict()
         else:
@@ -148,11 +148,11 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人}{金额}")
         multi_subject_extractor.add_rule("{利率}量?(?P<交易方向>出|收|买|卖){承兑人}{票据期限}")
         multi_subject_extractor.add_rule("收{承兑人}、")
+        # new
         multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){承兑人}")
         multi_subject_extractor.add_rule("{票据期限}.{{0,2}}{贴现人}")
-        # new
         multi_subject_extractor.add_rule("{票据期限}[：]*{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}{承兑人}")
+        multi_subject_extractor.add_rule("{票据期限}.?{贴现人}{承兑人}")
         multi_subject_extractor.add_rule("{票据期限}{贴现人}{承兑人}承兑票{金额}")
         multi_subject_extractor.add_rule("{票据期限}{贴现人}直?贴{承兑人}{金额}{利率}")
         multi_subject_extractor.add_rule("{承兑人}{金额}{利率}")
@@ -161,6 +161,12 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}?{承兑人}{金额}")   
         multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}（单张{金额}）")    #  2月国贴上汽财司（单张3500万元）
         multi_subject_extractor.add_rule("{承兑人}{贴现人}")
+        multi_subject_extractor.add_rule("{票据期限}{承兑人}，{贴现人}贴；")
+        multi_subject_extractor.add_rule("{票据期限}.{{0,2}}{贴现人}贴{承兑人}{利率}")
+        multi_subject_extractor.add_rule("{贴现人}直?贴{票据期限}{承兑人}")
+
+        multi_subject_extractor.add_rule("(?P<交易方向>出|收|买|卖)托收{承兑人}{票据期限}{利率}")
+        multi_subject_extractor.add_rule("{承兑人}{票据期限}{利率}")
        
        # （Done）"出10月出国股城商3350万元、11-12月中行、兰州",
        # （Done）"出足月东营（农贴）南粤，长安，北部湾民贴"
@@ -177,7 +183,16 @@ class RelationExtractorManager:
        # "（Done） 【收】1月、3月国股大商小票、城农商、电商财司",   --> join
         
         # ！！" 打包出1900万9月义乌农、10月杭州联合，广发贴",  VS  # "1月长安（城贴），1月烟台/泰安/齐商/东营，民贴",
-       
+
+        # 奔放滴收1月及少量2月的国贴城农，电商（平安、中信贴不约）财司可有小票（需加点）
+        #" （Done）1、涨价出1月（3000万）、2月到期邮储贴富滇2亿，清单在票整",
+        # （Done）"少量卖2月城贴日照、厦门，少量12月国贴城商",
+        # " [玫瑰]收1月、3月国股、大商贴或者国股承兑授信城农，财司，电商票[玫瑰]带清单秒碰价[玫瑰]",
+        #" （tempate Done）卖断我行直贴23月国股，23月杭州，2月城农"
+        # （Done）" 继续降价收1月！国贴五大132、普国133、f134，其余相应加点！额度1亿，挑授信，",
+        # （Done）" 卖断2月到期四川，大商贴；3月到期双浙商",
+
+        #" [拥抱]收托收，银票9.23-9.28期间1.85%，财票商票9.23-9.27期间1.95%~",
 
         temps = [
             "{利率1}量?(?P<交易方向1>出|收|买|卖){承兑人1}{票据期限1}，{利率2}量?(?P<交易方向2>出|收|买|卖){承兑人2}{票据期限2}",
@@ -186,13 +201,14 @@ class RelationExtractorManager:
             "(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人1}，{承兑人2}{利率2}，{承兑人3}{利率3}",
             "(?P<交易方向>出|收|买|卖){票据期限}{贴现人1}贴{承兑人1}，{贴现人2}贴{承兑人2}",
             "(?P<交易方向>出|收|买|卖){票据期限1}{金额1}、{票据期限2}{金额2}\s*{承兑人}",
-
+            
         ]
         # "1、收9月为主的国贴城农及12月国贴财司、电商，可单张过亿，欢迎清单来",
         # "出 11月份 渤海直贴  齐鲁1140万1.50%+国股2440万1.40%   打包一起出"
         # "收四季度国贴城农电商，城农1.35+，电商1.45+",
         # "2、出12月国贴五大，国贴大商（浙商、江苏）"
         # "出 2月1132万、3月1460万  双国"
+
         
         template_extractor = TemplateExtractor(temps)
     
