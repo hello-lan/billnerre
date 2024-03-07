@@ -1,5 +1,6 @@
 import re
 import warnings
+from itertools import takewhile
 from collections import defaultdict, Counter
 from abc import ABC, abstractclassmethod
 
@@ -256,44 +257,63 @@ class MultiSubjectExtractor(TemplateExtractor):
         else:
             return []
         
-    def extract(self, text, labels):
-        items = super().extract(text, labels)
-        labels = sorted(labels, key=lambda x:x["start"])   # 按索引位置排序
-        #case 1 如果没有提取到贴现人（贴现人在最后）
-        # discounter_items = list(filter(lambda x:"贴现人" in x, items))
-        # # discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels[-2:])   # 最后两个标签
-        # discounter_labels = filter(lambda x:x["label_name"]=="贴现人",labels)   # 最后两个标签
-        # discounters = list(map(lambda x:x["text"],discounter_labels))
-        # if len(discounter_items)==0 and len(discounters) > 0:
-        #     for item in items:
-        #         item["贴现人"] = discounters
-
-        # 贴现人在最后
-        last_discounter = []
-        for label in labels[::-1]:
-            if label["label_name"] =="贴现人":
-                last_discounter.append(label["text"])
-            else:
-                break
-
-        if len(last_discounter) > 0:
-            last_item = items[-1]
-            last_discounter = last_item.get("贴现人",last_discounter)
-            for i in range(len(items)-1,-1,-1):
+    def _fixup_discounters(self,items, labels):
+        labels = sorted(labels, key=lambda x:x["start"],reverse=True)   # 按索引位置逆序排序
+        discounters = [label["text"] for label in takewhile(lambda x: x["label_name"]=="贴现人", labels)]
+        if len(discounters) > 0 and len(items) > 0:
+            last_discounter = items[-1].get("贴现人", discounters)
+            for i in range(len(items)-1,-1, -1):
                 item = items[i]
                 if i == (len(items)-1) or item.get("贴现人") is None:
                     item["贴现人"] = last_discounter
                 else:
                     break
 
-        # CASE 2: 第一个抽取抽取项有票据期限，后面的都没有
-        pre_duetime = []
-        for label in labels:
-            if label["label_name"] == "票据期限":
-                pre_duetime.append(label["text"])
-            else:
-                break
-        for item in items:
-            pre_duetime = item.get("票据期限", pre_duetime)
-            item["票据期限"] = pre_duetime
+    def _fixup_duetime(self,items, labels):
+        labels = sorted(labels, key=lambda x:x["start"])   # 按索引位置排序
+        pre_due =  [label["text"] for label in takewhile(lambda x: x["label_name"]=="票据期限", labels)]
+        if len(pre_due) > 0 and len(items) > 0:
+            for item in items:
+                cur_due = item.get("票据期限")
+                if cur_due is None:
+                    item["票据期限"] = pre_due
+                else:
+                    pre_due = cur_due
+
+        
+    def extract(self, text, labels):
+        items = super().extract(text, labels)
+        labels = sorted(labels, key=lambda x:x["start"])   # 按索引位置排序
+
+        # # 贴现人在最后
+        # last_discounter = []
+        # for label in labels[::-1]:
+        #     if label["label_name"] =="贴现人":
+        #         last_discounter.append(label["text"])
+        #     else:
+        #         break
+
+        # if len(last_discounter) > 0:
+        #     last_item = items[-1]
+        #     last_discounter = last_item.get("贴现人",last_discounter)
+        #     for i in range(len(items)-1,-1,-1):
+        #         item = items[i]
+        #         if i == (len(items)-1) or item.get("贴现人") is None:
+        #             item["贴现人"] = last_discounter
+        #         else:
+        #             break
+
+        # # CASE 2: 第一个抽取抽取项有票据期限，后面的都没有
+        # pre_duetime = []
+        # for label in labels:
+        #     if label["label_name"] == "票据期限":
+        #         pre_duetime.append(label["text"])
+        #     else:
+        #         break
+        # for item in items:
+        #     pre_duetime = item.get("票据期限", pre_duetime)
+        #     item["票据期限"] = pre_duetime
+
+        self._fixup_discounters(items, labels)
+        self._fixup_duetime(items, labels)
         return items
