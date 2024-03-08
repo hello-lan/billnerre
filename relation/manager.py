@@ -55,9 +55,8 @@ class RelationExtractorManager:
        
     def extract_relation(self, text, labels):
         """关系抽取"""
-        result = []
         if len(labels) == 0:
-            return result, []
+            return dict(text=text, labels=labels, relations=[],empties=[])
         ## step1: 提取发布者所属机构
         org_item = extract_publisher_org(labels)
         ## step2: 预处理
@@ -67,10 +66,9 @@ class RelationExtractorManager:
         msg_labels = list(filter(lambda x:x["label_name"]!="发布者所属机构",msg_labels))
         # 切分消息内容
         items = Spliter.split_msg(msg_text, msg_labels)
-    
+        # step3: 关系抽取
         root_trading_dir = dict()
-
-        none_extracted = []
+        relations, empties = [],[]
         for item in items:
             sub_text, sub_labels = item['text'], item["labels"]
             # 判断并抽取总领下文出现的实体的的交易方向
@@ -80,8 +78,10 @@ class RelationExtractorManager:
             # 若无标签，则跳过
             label_names = [item["label_name"] for item in sub_labels]
             if len(label_names) == 0:
+                if len(sub_text.strip()) > 0:
+                    empties.append(dict(subContent=sub_text,subLabels=sub_labels))
                 continue
-            for j, extractor in enumerate(self.rela_extractors):
+            for extractor in self.rela_extractors:
                 rst_items = extractor.extract(sub_text, sub_labels)
                 if len(rst_items) > 0:
                     # 补充其他要素
@@ -94,17 +94,14 @@ class RelationExtractorManager:
                         if "交易方向" not in rst:
                             rst.update(trading_dir)   # 添加交易方向 
                     # 保存结果
-                    ext = str(extractor)
-                    method = j+1
-                    result.append(dict(text=sub_text,labels=sub_labels,output=rst_items,raw_text=text,method=method, ext=ext))
-                    # result.append(dict(text=sub_text,output=rst_items,raw_text=text,method=method, ext=ext))
+                    relations.append(dict(subContent=sub_text,labels=sub_labels,results=rst_items,relaExtractor=str(extractor)))
                     # 跳出
                     break
             else:
                 # 未被抽取到的数据
-                none_extracted.append(dict(text=sub_text, label=sub_labels))
-                pass
-        return result,none_extracted
+
+                empties.append(dict(subContent=sub_text,subLabels=sub_labels))
+        return dict(text=text, labels=labels, relations=relations, empties=empties)
     
     @classmethod
     def of_default(cls):
@@ -160,13 +157,14 @@ class RelationExtractorManager:
         multi_subject_extractor.add_rule("{贴现人}贴{承兑人}{利率}")# " 继续降价收1月！国贴五大132、普国133、f134，其余相应加点！额度1亿，挑授信，",
         multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}?{承兑人}{金额}")   
         multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}（单张{金额}）")    #  2月国贴上汽财司（单张3500万元）
-        multi_subject_extractor.add_rule("{承兑人}{贴现人}")
+        multi_subject_extractor.add_rule("{承兑人}\s*{贴现人}")
         multi_subject_extractor.add_rule("{票据期限}{承兑人}，{贴现人}贴；")
         multi_subject_extractor.add_rule("{票据期限}.{{0,2}}{贴现人}贴{承兑人}{利率}")
         multi_subject_extractor.add_rule("{贴现人}直?贴{票据期限}{承兑人}")
 
         multi_subject_extractor.add_rule("(?P<交易方向>出|收|买|卖)托收{承兑人}{票据期限}{利率}")
         multi_subject_extractor.add_rule("{承兑人}{票据期限}{利率}")
+        multi_subject_extractor.add_rule("{票据期限}(?:到期)?授信{承兑人}[，,]?{贴现人}")
        
        # （Done）"出10月出国股城商3350万元、11-12月中行、兰州",
        # （Done）"出足月东营（农贴）南粤，长安，北部湾民贴"

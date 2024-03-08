@@ -11,7 +11,7 @@ from config import Config
 from utils.file_io import load_json,save_json
 from utils.metric import SeqEntityScore
 from utils.logger import logger, init_logger
-from utils import VocabularyBuilder,load_pretrained_vocab_embedding, DatasetLoader, ProgressBar, AverageMeter
+from utils import VocabularyBuilder,Vocabulary,load_pretrained_vocab_embedding, DatasetLoader, ProgressBar, AverageMeter
 from utils.mix import get_entities
 
 
@@ -56,7 +56,8 @@ def train(model, vocab, conf):
             logger.info(f"\nEpoch {epoch}: eval_f1 improved from {best_f1} to {logs['eval_f1']}")
             logger.info("save model to disk.")
             best_f1 = logs['eval_f1']
-            model.save()
+            # model.save()
+            model.save(conf.model_path, vocab.word2idx)
 
             print("Eval Entity Score: ")
             for key, value in class_info.items():
@@ -100,8 +101,14 @@ def evaluate(model, vocab, conf):
 
 def predict(model,vocab,conf):
     lines = [
-        "邮储黄C+15386699183 : 出4月到期乐山，邮储直贴",
-        "浦发天津-胡广森 : 询价收12月电\n浦发天津-胡广森18221951727",
+        # "邮储黄C+15386699183 : 出4月到期乐山，邮储直贴",
+        # "浦发天津-胡广森 : 询价收12月电\n浦发天津-胡广森18221951727",
+        # "同创合鑫 赵达超15215707830 : 收跨年重庆 青岛农 河北 成都 天津 九江 江西 郑州 中原 稠州 宁波通商杭州联合农 萧山农 江南农 等优质城农 城贴以上可自贴\n收1月遂宁 或者2月初到期 非村贴",
+        # "吾见青山 重庆富民 喻飞 : 1、出城商\n2、接票据过桥，授信广，速度快！\n3、富民银行（AA+）收各期限拆借，限量发行各期限存单！",
+        "吾见青山 重庆富民 喻飞 : 1、出城商",
+        # "浦发天津-胡广森 : 1、出城商",
+        # "诗情悦意 : \n【收】2月3月4月到期授信城农商、财司、商票，国股大商贴\n闫诗悦邮储黑龙江13199464913",
+        # "同创合鑫 赵达超15215707830 : 收北部湾 大连 秦农 城贴/农贴",
     ]
     for line in lines:
         words = list(line)
@@ -120,16 +127,17 @@ def predict(model,vocab,conf):
             item = dict(label_name=label_name,start=start,end=end,text=words)
             items.append(item)
         rst = dict(text=line, labels=items)
-        print(rst) 
+        print(rst)
+        print("\n") 
 
 
 def extract(model, vocab, conf):
-    from rela_extract import RelationExtractorManager
+    from relation.manager import RelationExtractorManager
     rela_ext_manager = RelationExtractorManager.of_default()
 
     data = load_json(conf.eval_data_path)
     model.eval()
-    tmp = []
+    results = []
     for item in data:
         text = item["text"]
         words = list(text)
@@ -146,43 +154,42 @@ def extract(model, vocab, conf):
             words = text[start:end+1]
             item = dict(label_name=label_name,start=start,end=end,text=words)
             items.append(item)
-        rst = dict(text=text, labels=items)
+        # rst = dict(text=text, labels=items)
         # 关系抽取
-        extract_items = rela_ext_manager.extract_relation(text,items)
-        tmp.extend(extract_items)
+        relation = rela_ext_manager.extract_relation(text,items)
+        relation.pop("labels")
+        relation.pop("empties")
+        results.append(relation)
     
     save_path = "cache/ner_relation_result.json"
-    save_json(tmp, save_path)
-
-    
+    save_json(results, save_path)
 
 
 @click.command()
 @click.option('-t', '--task', type=click.Choice(['train', 'eval','predict','extract']),default='train', help='任务')
 @click.option("--revocab", is_flag=True, help="是否重新创建vocablary")
 @click.option('--pretrained', is_flag=True, help='使用预训练词向量')
-@click.option('-m', "--model", type=click.Choice(['bilstm_crf']), default='bilstm_crf', help="模型", show_default=True)
 @click.option('--gpu', type=int, default=None, help='GPU')
-def main(task, model, gpu, pretrained,revocab):
+def main(task, gpu, pretrained,revocab):
     if isinstance(gpu, int):
         device = t.device(f"cuda:{gpu}")
     else:
         device = t.device('cpu')
     conf = Config()
 
-    # 是否使用预训练词向量
-    if pretrained:
-        click.echo("读取预训练词向量...")
-        # pretrained_dir = "data/pretrained_embedding/sgns_weibo"
-        pretrained_dir = "data/pretrained_embedding/tencent"
-        vocab, embedding = load_pretrained_vocab_embedding(pretrained_dir)
-        conf.embeding_size= embedding.shape[1]
-    else:
-        click.echo("加载或创建vocabulary...")
-        vocab = VocabularyBuilder.get_or_build_vocab(conf,rebuild=revocab)
-
     if task == "train":
-        ner_model = BiLSTM_CRF(vocab_size=len(vocab),
+        # 是否使用预训练词向量
+        if pretrained:
+            click.echo("读取预训练词向量...")
+            # pretrained_dir = "data/pretrained_embedding/sgns_weibo"
+            pretrained_dir = "data/pretrained_embedding/tencent"
+            vocab, embedding = load_pretrained_vocab_embedding(pretrained_dir)
+            conf.embeding_size= embedding.shape[1]
+        else:
+            click.echo("加载或创建vocabulary...")
+            vocab = VocabularyBuilder.get_or_build_vocab(conf,rebuild=revocab)
+
+        ner_model = BiLSTM_CRF(vocabsize=len(vocab),
                                embedding_size=conf.embeding_size,
                                hidden_size=conf.hidden_size,
                                label_size=len(conf.label2id)
@@ -193,23 +200,27 @@ def main(task, model, gpu, pretrained,revocab):
             click.echo("加载预训练词向量到模型...")
             ner_model.load_pretrained_embedding(embedding)
 
-
-        log_path = os.path.join(conf.cache_dir, f'{model}-train.log')
+        log_path = os.path.join(conf.cache_dir, 'train.log')
         init_logger(log_file=log_path)
         # ner_model.to(device)
         click.echo("模型训练...")
         train(ner_model, vocab, conf)
 
-    if task == "eval":
-        pass
-    if task == "predict":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240118.pth")
-        predict(ner_model, vocab, conf)
+    else:
+        ner_model, word2id = BiLSTM_CRF.load_model(conf.model_path)
+        vocab = Vocabulary(word2id)
 
-    if task == "extract":
-        ner_model, _ = BiLSTM_CRF.load_model("checkpoints/BiLSTM_CRF_best_20240118.pth")
-        extract(ner_model, vocab, conf)
-
+        if task == "predict":
+            predict(ner_model, vocab, conf)
+    
+        if task == "extract":
+            extract(ner_model, vocab, conf)
+        
+        if task == "eval":
+            from pprint import pprint
+            rst, classinfo = evaluate(ner_model, vocab, conf)
+            pprint(rst)
+            pprint(classinfo)
 
 
 if __name__ == "__main__":

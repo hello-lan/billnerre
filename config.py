@@ -31,6 +31,7 @@ class Config:
     # 文件路径
     train_data_path = 'data/corpus_msg/train_processed.json'
     eval_data_path = 'data/corpus_msg/dev_processed.json'
+    model_path = "data/BiLSTM_CRF_best.pth"
     vocab_path = 'data/vocab_msg.pkl'
     cache_dir = 'cache'
 
