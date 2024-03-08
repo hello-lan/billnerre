@@ -118,53 +118,53 @@ class RelationExtractorManager:
         # multi_due_extractor = IntegrateExtractor("票据期限")
 
         multi_subject_extractor = MultiSubjectExtractor()
-        multi_subject_extractor.add_rule("{票据期限}（?{承兑人}）?")
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}?{承兑人}") # "2、有拓客需求的小伙伴，来约一个托收啊，只收近期到期的国股大商的大票托收，主打一个缘分交易",
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}（{贴现人}.{{0,3}}）")  ## ->（{贴现人}.{{0,3}}贴） ？？
-        multi_subject_extractor.add_rule("{票据期限}{利率}{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}\s*{金额}")
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}单张{金额}")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}直?贴（?{承兑人}）?")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}{金额}")
-        multi_subject_extractor.add_rule("{承兑人}\s*{金额}")
-        multi_subject_extractor.add_rule("{承兑人}{票据期限}{金额}")
-        multi_subject_extractor.add_rule("{贴现人}贴{承兑人}（?{金额}）?")
-        multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}")
-        multi_subject_extractor.add_rule("{贴现人}直?贴{承兑人}{利率}")
-        multi_subject_extractor.add_rule("{金额}\s*{票据期限}{承兑人}")
-        multi_subject_extractor.add_rule("{金额}\s*{票据期限}{贴现人}贴{承兑人}")
-        multi_subject_extractor.add_rule("{金额}{承兑人}")
-        multi_subject_extractor.add_rule("{金额}{承兑人}{票据期限}")
-        multi_subject_extractor.add_rule("{利率}{承兑人}")
-        multi_subject_extractor.add_rule("{承兑人}{利率}")
-        multi_subject_extractor.add_rule("{承兑人}{票据期限}") # 票据期限主要为`托收`
-        multi_subject_extractor.add_rule("{票据期限}各类票")
-        multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){承兑人}{金额}，{贴现人}贴")
-        multi_subject_extractor.add_rule("收{票据期限}[；;]")
-        multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人}{金额}")
-        multi_subject_extractor.add_rule("{利率}量?(?P<交易方向>出|收|买|卖){承兑人}{票据期限}")
-        multi_subject_extractor.add_rule("收{承兑人}、")
+        multi_subject_extractor.add_template("{票据期限}（?{承兑人}）?")
+        multi_subject_extractor.add_template("{票据期限}{承兑人}")
+        multi_subject_extractor.add_template("{票据期限}\w{{0,3}}?{承兑人}") # "2、有拓客需求的小伙伴，来约一个托收啊，只收近期到期的国股大商的大票托收，主打一个缘分交易",
+        multi_subject_extractor.add_template("{票据期限}{承兑人}（{贴现人}.{{0,3}}）")  ## ->（{贴现人}.{{0,3}}贴） ？？
+        multi_subject_extractor.add_template("{票据期限}{利率}{承兑人}")
+        multi_subject_extractor.add_template("{票据期限}{承兑人}\s*{金额}")
+        multi_subject_extractor.add_template("{票据期限}{承兑人}单张{金额}")
+        multi_subject_extractor.add_template("{票据期限}{贴现人}直?贴（?{承兑人}）?")
+        multi_subject_extractor.add_template("{票据期限}{贴现人}贴{承兑人}{金额}")
+        multi_subject_extractor.add_template("{承兑人}\s*{金额}")
+        multi_subject_extractor.add_template("{承兑人}{票据期限}{金额}")
+        multi_subject_extractor.add_template("{贴现人}贴{承兑人}（?{金额}）?")
+        multi_subject_extractor.add_template("{贴现人}直?贴{承兑人}")
+        multi_subject_extractor.add_template("{贴现人}直?贴{承兑人}{利率}")
+        multi_subject_extractor.add_template("{金额}\s*{票据期限}{承兑人}")
+        multi_subject_extractor.add_template("{金额}\s*{票据期限}{贴现人}贴{承兑人}")
+        multi_subject_extractor.add_template("{金额}{承兑人}")
+        multi_subject_extractor.add_template("{金额}{承兑人}{票据期限}")
+        multi_subject_extractor.add_template("{利率}{承兑人}")
+        multi_subject_extractor.add_template("{承兑人}{利率}")
+        multi_subject_extractor.add_template("{承兑人}{票据期限}") # 票据期限主要为`托收`
+        multi_subject_extractor.add_template("{票据期限}各类票")
+        multi_subject_extractor.add_template("{利率}(?P<交易方向>出|收|买|卖){承兑人}{金额}，{贴现人}贴")
+        multi_subject_extractor.add_template("收{票据期限}[；;]")
+        multi_subject_extractor.add_template("{利率}(?P<交易方向>出|收|买|卖){票据期限}{贴现人}贴{承兑人}{金额}")
+        multi_subject_extractor.add_template("{利率}量?(?P<交易方向>出|收|买|卖){承兑人}{票据期限}")
+        multi_subject_extractor.add_template("收{承兑人}、")
         # new
-        multi_subject_extractor.add_rule("{利率}(?P<交易方向>出|收|买|卖){承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}.{{0,2}}{贴现人}")
-        multi_subject_extractor.add_rule("{票据期限}[：]*{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}.?{贴现人}{承兑人}")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}{承兑人}承兑票{金额}")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}直?贴{承兑人}{金额}{利率}")
-        multi_subject_extractor.add_rule("{承兑人}{金额}{利率}")
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}(?:或者承兑授信)?{承兑人}")  # !!"2、捡漏收收1月.3月国贴或者承兑授信城农，财司，电商票，欢迎都清单报价",
-        multi_subject_extractor.add_rule("{贴现人}贴{承兑人}{利率}")# " 继续降价收1月！国贴五大132、普国133、f134，其余相应加点！额度1亿，挑授信，",
-        multi_subject_extractor.add_rule("{票据期限}\w{{0,3}}?{承兑人}{金额}")   
-        multi_subject_extractor.add_rule("{票据期限}{贴现人}贴{承兑人}（单张{金额}）")    #  2月国贴上汽财司（单张3500万元）
-        multi_subject_extractor.add_rule("{承兑人}\s*{贴现人}")
-        multi_subject_extractor.add_rule("{票据期限}{承兑人}，{贴现人}贴；")
-        multi_subject_extractor.add_rule("{票据期限}.{{0,2}}{贴现人}贴{承兑人}{利率}")
-        multi_subject_extractor.add_rule("{贴现人}直?贴{票据期限}{承兑人}")
+        multi_subject_extractor.add_template("{利率}(?P<交易方向>出|收|买|卖){承兑人}")
+        multi_subject_extractor.add_template("{票据期限}.{{0,2}}{贴现人}")
+        multi_subject_extractor.add_template("{票据期限}[：]*{承兑人}")
+        multi_subject_extractor.add_template("{票据期限}.?{贴现人}{承兑人}")
+        multi_subject_extractor.add_template("{票据期限}{贴现人}{承兑人}承兑票{金额}")
+        multi_subject_extractor.add_template("{票据期限}{贴现人}直?贴{承兑人}{金额}{利率}")
+        multi_subject_extractor.add_template("{承兑人}{金额}{利率}")
+        multi_subject_extractor.add_template("{票据期限}{贴现人}(?:或者承兑授信)?{承兑人}")  # !!"2、捡漏收收1月.3月国贴或者承兑授信城农，财司，电商票，欢迎都清单报价",
+        multi_subject_extractor.add_template("{贴现人}贴{承兑人}{利率}")# " 继续降价收1月！国贴五大132、普国133、f134，其余相应加点！额度1亿，挑授信，",
+        multi_subject_extractor.add_template("{票据期限}\w{{0,3}}?{承兑人}{金额}")   
+        multi_subject_extractor.add_template("{票据期限}{贴现人}贴{承兑人}（单张{金额}）")    #  2月国贴上汽财司（单张3500万元）
+        multi_subject_extractor.add_template("{承兑人}\s*{贴现人}")
+        multi_subject_extractor.add_template("{票据期限}{承兑人}，{贴现人}贴；")
+        multi_subject_extractor.add_template("{票据期限}.{{0,2}}{贴现人}贴{承兑人}{利率}")
+        multi_subject_extractor.add_template("{贴现人}直?贴{票据期限}{承兑人}")
 
-        multi_subject_extractor.add_rule("(?P<交易方向>出|收|买|卖)托收{承兑人}{票据期限}{利率}")
-        multi_subject_extractor.add_rule("{承兑人}{票据期限}{利率}")
-        multi_subject_extractor.add_rule("{票据期限}(?:到期)?授信{承兑人}[，,]?{贴现人}")
+        multi_subject_extractor.add_template("(?P<交易方向>出|收|买|卖)托收{承兑人}{票据期限}{利率}")
+        multi_subject_extractor.add_template("{承兑人}{票据期限}{利率}")
+        multi_subject_extractor.add_template("{票据期限}(?:到期)?授信{承兑人}[，,]?{贴现人}")
        
        # （Done）"出10月出国股城商3350万元、11-12月中行、兰州",
        # （Done）"出足月东营（农贴）南粤，长安，北部湾民贴"
@@ -218,7 +218,7 @@ class RelationExtractorManager:
             multi_due_extractor,
             template_extractor,
             multi_subject_extractor
-        ]
+        ] # 注意顺序，越往前，优先级越高
 
         manager = cls(extractors)
         return manager
