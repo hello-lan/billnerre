@@ -92,12 +92,13 @@ class MultiAmtExtractor(IntegrateExtractor):
 class TemplateExtractor(Extractor):
     """ 模板抽取器
     """
-    def __init__(self, templates:list=None):
+    def __init__(self, templates:list=None, multival_labels:set=None):
         if isinstance(templates,list):
             self.templates = templates
         else:
             self.templates = []
         self.template_patterns = []
+        self.multival_labels = {"承兑人","贴现人","票据期限"} if multival_labels is None else multival_labels
 
     def __str__(self):
         return self.__class__.__name__ + "(templates=[...])"
@@ -199,21 +200,23 @@ class TemplateExtractor(Extractor):
                 output.append(base_group)
         return output
     
-    @staticmethod
-    def _melt_entities(items, label2entities):
+    def _melt_entities(self, items, label2entities):
         # prepare regexps
         label2regexp = dict()
         for label_name, entities in label2entities.items():
-            ents = sorted(entities,key=lambda x:len(x), reverse=True)  # 按字符数量从多到少排序
-            label2regexp[label_name] = "({regexp})".format(regexp="|".join(ents))
+            if label_name in self.multival_labels:
+                ents = sorted(entities,key=lambda x:len(x), reverse=True)  # 按字符数量从多到少排序
+                label2regexp[label_name] = "({regexp})".format(regexp="|".join(ents))
         # 
         for item in items:
-            for label_name in item.keys():
+            for label_name, entity in item.items():
                 if label_name in label2regexp:
                     regexp = label2regexp[label_name]
-                    entity = item[label_name]
-                    entities = re.findall(regexp,entity)
-                    item[label_name] = entities if len(entities) > 1 else entities[0]
+                    item[label_name] = re.findall(regexp,entity)
+                elif label_name in self.multival_labels:
+                    item[label_name] = ["entity"]
+                else:
+                    pass
         return items
 
 
