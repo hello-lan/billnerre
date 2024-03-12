@@ -1,4 +1,6 @@
 from fastapi import FastAPI
+from fastapi.exception_handlers import request_validation_exception_handler
+from fastapi.exceptions import RequestValidationError
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -57,11 +59,15 @@ def start_event():
     init_model(Config)
     init_manager()
 
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request, exc):
+    return await request_validation_exception_handler(request, exc)
+
 @app.post("/predict",response_model=SequenceTagResponse)
 async def recognize_ner(msg: LiteMessage):
     text = msg.content
     labels, seq_tags = predict(text)
-    entities = SequenceTag(mark="BIOS",preds=seq_tags,entities=list(map(lambda x:EntityItem(**x), labels)))
+    entities = SequenceTag(mark="BIOS",preds=seq_tags,entities=labels)
     return SequenceTagResponse(code="0000",message="success",entities=entities)
 
 @app.post("/extract-relation",response_model=RelationResponse)
