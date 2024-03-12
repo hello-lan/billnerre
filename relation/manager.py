@@ -101,6 +101,43 @@ class RelationExtractorManager:
                 # 未被抽取到的数据
                 empties.append(dict(sub_text=sub_text,sub_labels=sub_labels))
         return dict(text=text, labels=labels, extracts=extracts, empties=empties)
+    
+    def extract_core_relation(self, text, labels):
+        """ 对抽取结果保留核心要素，并做如下处理（具体实现参见fixup_rela方法）：
+         1.补充没有抽取的标签（承兑人、贴现人、票据期限这三个标签默认值为[], 其余标签默认值为None）
+         2.`贴现人`中的“我行”替换为`发布者所属机构`对应的实体，若`发布者所属机构`为None，则去掉该贴现人
+        """
+        tmp_results = self.extract_relation(text, labels)
+        extracts = map(lambda item: dict(sub_text=item["sub_text"],relations=list(map(self.fixup_rela, item["relations"])),extractor=item["extractor"]), tmp_results["extracts"])
+        return list(extracts)
+    
+    @staticmethod
+    def fixup_rela(relation):
+        single_value_fields = ["金额","利率","交易方向","发布者所属机构"]
+        rela = dict.fromkeys(single_value_fields, None)
+        rela["承兑人"] = []
+        rela["贴现人"] = []
+        rela["票据期限"] = []
+        rela.update(relation)
+        if isinstance(rela["承兑人"],str):
+            rela["承兑人"] = [rela["承兑人"]]
+        if isinstance(rela["贴现人"],str):
+            rela["贴现人"] = [rela["贴现人"]]
+        if isinstance(rela["票据期限"],str):
+            rela["票据期限"] = [rela["票据期限"]]
+        # 贴现人"我行"处理
+        discounters = []
+        for e in rela["贴现人"]:
+            if e == "我行":
+                if isinstance(rela["发布者所属机构"],str) and len(rela["发布者所属机构"]) > 0:
+                    discounters.append(rela["发布者所属机构"])
+                else:
+                    continue
+            else:
+                discounters.append(e)
+        rela["贴现人"] = discounters
+        return rela
+        
      
     @classmethod
     def of_default(cls):
