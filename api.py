@@ -1,6 +1,6 @@
 from fastapi import FastAPI
-from fastapi.exception_handlers import request_validation_exception_handler
 from fastapi.exceptions import RequestValidationError
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List
 
@@ -61,7 +61,14 @@ def start_event():
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request, exc):
-    return await request_validation_exception_handler(request, exc)
+    buff = []
+    for error in exc.errors():
+        fieldName = ".".join(error.get("loc"))
+        errType = error.get("type")
+        errmsg = "{loc}[{type}]:{msg}".format(loc=fieldName,type=errType,msg=error.get("msg"))
+        buff.append(errmsg.replace("body.",""))
+    errMsg = ";".join(buff)
+    return JSONResponse(status_code=418,content={"message":errMsg, "code":"0001"})
 
 @app.post("/predict",response_model=SequenceTagResponse)
 async def recognize_ner(msg: LiteMessage):
