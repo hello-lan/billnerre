@@ -42,8 +42,8 @@ def test():
 
     save_json(results, "cache/test_relation_results_%s.json"%len(results))
 
-    relations = reduce(lambda x,y:x+y, map(lambda x:x["relations"],results))
-    save_json(relations, "cache/test_relation_relations_%s.json"%len(relations))
+    extracts = reduce(lambda x,y:x+y, map(lambda x:x["extracts"],results))
+    save_json(extracts, "cache/test_relation_extracts_%s.json"%len(extracts))
 
     empties = reduce(lambda x,y:x+y, map(lambda x:x["empties"],results))
     save_json(empties, "cache/test_relation_empties_%s.json"%len(empties))
@@ -51,12 +51,12 @@ def test():
 
     def pop_labels(item):
         item_new = dict(item)
-        item_new.pop("labels")
+        item_new.pop("sub_labels")
         return item_new 
 
     def is_complete(item):
-        labels = item["labels"]
-        output = item["results"]
+        labels = item["sub_labels"]
+        output = item["relations"]
         entities_01 = [x["text"] for x in labels]
         entities_02_ = [xx for x in output for xx in x.values()]
         entities_02 = []
@@ -68,14 +68,14 @@ def test():
         y = set(entities_01) - set(entities_02)
         return len(y)  > 0
     
-    not_complete = list(map(pop_labels,filter(is_complete, relations)))
+    not_complete = list(map(pop_labels,filter(is_complete, extracts)))
     save_json(not_complete,"cache/test_relation_not_complete_%s.json"%len(not_complete))
 
     ## flatten data
     for ext in manager.rela_extractors:
         # rst_ext = list(filter(lambda item: item["ext"]==str(ext), new_tmp))
-        rst_ext = list(map(pop_labels,filter(lambda item: item["relaExtractor"]==str(ext), relations)))
-        size = reduce(lambda x,y: x+y, map(lambda x:len(x["results"]),rst_ext))
+        rst_ext = list(map(pop_labels,filter(lambda item: item["extractor"]==str(ext), extracts)))
+        size = reduce(lambda x,y: x+y, map(lambda x:len(x["relations"]),rst_ext))
         save_json(rst_ext,"cache/test_relation_%s_%s_total_%s.json"%(str(ext),len(rst_ext),size))
 
 

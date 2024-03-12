@@ -56,7 +56,7 @@ class RelationExtractorManager:
     def extract_relation(self, text, labels):
         """关系抽取"""
         if len(labels) == 0:
-            return dict(text=text, labels=labels, relations=[],empties=[])
+            return dict(text=text, labels=labels, extracts=[],empties=[])
         ## step1: 提取发布者所属机构
         org_item = extract_publisher_org(labels)
         ## step2: 预处理
@@ -68,7 +68,7 @@ class RelationExtractorManager:
         items = Spliter.split_msg(msg_text, msg_labels)
         # step3: 关系抽取
         root_trading_dir = dict()
-        relations, empties = [],[]
+        extracts, empties = [],[]
         for item in items:
             sub_text, sub_labels = item['text'], item["labels"]
             # 判断并抽取总领下文出现的实体的的交易方向
@@ -82,27 +82,26 @@ class RelationExtractorManager:
                     empties.append(dict(subContent=sub_text,subLabels=sub_labels))
                 continue
             for extractor in self.rela_extractors:
-                rst_items = extractor.extract(sub_text, sub_labels)
-                if len(rst_items) > 0:
+                relations = extractor.extract(sub_text, sub_labels)
+                if len(relations) > 0:
                     # 补充其他要素
                     trading_dir = extract_trading_direction(sub_text)   # 抽取交易方向
                     if len(trading_dir)==0 or trading_dir.get("交易方向") is None:
                         trading_dir = root_trading_dir
-                    for rst in rst_items:
-                        rst.update(org_item)  # 添加发布者所属机构
+                    for rela in relations:
+                        rela.update(org_item)  # 添加发布者所属机构
                         # 填充交易方向
-                        if "交易方向" not in rst:
-                            rst.update(trading_dir)   # 添加交易方向 
+                        if "交易方向" not in rela:
+                            rela.update(trading_dir)   # 添加交易方向 
                     # 保存结果
-                    relations.append(dict(subContent=sub_text,labels=sub_labels,results=rst_items,relaExtractor=str(extractor)))
+                    extracts.append(dict(sub_text=sub_text,sub_labels=sub_labels,relations=relations,extractor=str(extractor)))
                     # 跳出
                     break
             else:
                 # 未被抽取到的数据
-
-                empties.append(dict(subContent=sub_text,subLabels=sub_labels))
-        return dict(text=text, labels=labels, relations=relations, empties=empties)
-    
+                empties.append(dict(sub_text=sub_text,sub_labels=sub_labels))
+        return dict(text=text, labels=labels, extracts=extracts, empties=empties)
+     
     @classmethod
     def of_default(cls):
         uniq_subject_extractor = IntegrateExtractor()
