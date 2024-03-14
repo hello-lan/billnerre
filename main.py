@@ -189,7 +189,7 @@ def main(task, gpu, pretrained,revocab):
             click.echo("加载或创建vocabulary...")
             vocab = VocabularyBuilder.get_or_build_vocab(conf,rebuild=revocab)
 
-        ner_model = BiLSTM_CRF(vocabsize=len(vocab),
+        ner_model = BiLSTM_CRF(vocab_size=len(vocab),
                                embedding_size=conf.embeding_size,
                                hidden_size=conf.hidden_size,
                                label_size=len(conf.label2id)

@@ -70,7 +70,7 @@ async def validation_exception_handler(request, exc):
     errMsg = ";".join(buff)
     return JSONResponse(status_code=418,content={"message":errMsg, "code":"0001"})
 
-@app.post("/predict",response_model=SequenceTagResponse)
+@app.post("/name-entity-recognize",response_model=SequenceTagResponse)
 async def recognize_ner(msg: LiteMessage):
     text = msg.content
     labels, seq_tags = predict(text)
