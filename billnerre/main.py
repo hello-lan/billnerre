@@ -1,9 +1,7 @@
 import os
 
 import click
-import numpy as np
 import torch as t
-import torch.nn as nn
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
 from models.bilstm_crf import BiLSTM_CRF

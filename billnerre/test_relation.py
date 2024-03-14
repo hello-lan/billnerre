@@ -4,7 +4,7 @@ from utils.file_io import load_json, save_json
 
 
 def load_test_data():
-    path = "../corpus/Step2_已标注语料/final/WJQ_0118_final_2799.json"
+    path = "../scripts/wechat_msg/WJQ_0118_final_2799.json"
     data = load_json(path)
     #
     new_data = []
