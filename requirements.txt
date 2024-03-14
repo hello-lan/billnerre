@@ -2,5 +2,5 @@ click==8.1.7
 fastapi==0.110.0
 pytorch-crf==0.7.2
 uvicorn==0.28.0
-#torch==2.1.0+cpu
+torch==2.1.0+cpu
 

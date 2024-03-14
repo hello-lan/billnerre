@@ -1,0 +1,5 @@
+# 使用的docker基础镜像里已经安装了pytorch了，故此处不再装pytorch
+click==8.1.7
+fastapi==0.110.0
+pytorch-crf==0.7.2
+uvicorn==0.28.0
