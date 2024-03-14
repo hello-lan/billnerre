@@ -17,7 +17,6 @@ def extract_publisher_org(labels):
     item = {"发布者所属机构":org}
     return item
 
-
 def extract_trading_direction(text):
     """ 抽取交易方向
     """
@@ -28,6 +27,14 @@ def extract_trading_direction(text):
     else:
         return dict(交易方向=None)
 
+def extract_phone_num(text):
+    """ 抽取手机号码
+    """
+    m = re.search("\D(?P<手机号码>1[34578]\d{9})\D",text)
+    if m:
+        return m.groupdict()
+    else:
+        return {"手机号码":None}
 
 class RelationExtractorManager:
     """ 关系抽取器
@@ -59,6 +66,7 @@ class RelationExtractorManager:
             return dict(text=text, labels=labels, extracts=[],empties=[])
         ## step1: 提取发布者所属机构
         org_item = extract_publisher_org(labels)
+        phone_item = extract_phone_num(text)
         ## step2: 预处理
         # 分割: 发布者信息 与 消息体内容
         publisher_text, publisher_labels, msg_text, msg_labels = Spliter.split_publisher_vs_msg(text, labels)
@@ -90,6 +98,7 @@ class RelationExtractorManager:
                         trading_dir = root_trading_dir
                     for rela in relations:
                         rela.update(org_item)  # 添加发布者所属机构
+                        rela.update(phone_item)   # 添加手机号码
                         # 填充交易方向
                         if "交易方向" not in rela:
                             rela.update(trading_dir)   # 添加交易方向 
