@@ -69,8 +69,8 @@ month_getters = [get_digit_month,
                  get_cn_num_month,
                  get_quarter_month,
                  get_due,
-                 get_curr_month,
                  get_md_month,
+                 get_curr_month,
                  get_january,
                 ]
 
@@ -88,6 +88,7 @@ def extract_dueItem_from_duetexts(txts):
     items = map(extract_dueItem_from_duetext,txts)
     months, dues = zip(*items)
     month = max(months, key=lambda x:x if isinstance(x, (int,float)) else -float("inf"))
-    due = max(dues, key=lambda x:x if isinstance(x, (int,float)) else -float("inf"))
+    _due = max(dues, key=lambda x:x if isinstance(x, (int,float)) else -float("inf"))
+    due = "托收" if _due == 0 else "%M"%_due if isinstance(_due, (int,float)) else None
     return DueItem(month=month,due=due)
     

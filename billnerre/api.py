@@ -99,7 +99,7 @@ async def extract_relation(msg: Message):
             duetexts = rela["票据期限"]
             due_item = extract_dueItem_from_duetexts(duetexts)
             if due_item.due is not None:
-                rela["票据期限"] = ["%dM" % due_item.due]
+                rela["票据期限"] = [due_item.due]
             elif isinstance(due_item.month, int) and isinstance(cur_mon, int):
                 if cur_mon > due_item.month:
                     n = 12 - cur_mon + due_item.month
