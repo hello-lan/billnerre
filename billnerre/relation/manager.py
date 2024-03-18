@@ -54,7 +54,7 @@ class RelationExtractorManager:
         晋商王鑫18635439096
         ------
         """
-        m = re.search("(?<!卖|买|托)(?P<交易方向>买断|卖断|出|收|买|卖)[】：:]$", text.rstrip())
+        m = re.search("(?<!卖|买|托)(?P<交易方向>买断|卖断|出|收|买|卖)[】：:]*$", text.rstrip())
         if len(labels)==0 and len(text.strip()) <= 5 and m:
             return m.groupdict()
         else:
@@ -122,6 +122,7 @@ class RelationExtractorManager:
     
     @staticmethod
     def fixup_rela(relation):
+        # 1.缺失字段补全（none或者[]）
         single_value_fields = ["金额","利率","交易方向","发布者所属机构"]
         rela = dict.fromkeys(single_value_fields, None)
         rela["承兑人"] = []
@@ -134,7 +135,7 @@ class RelationExtractorManager:
             rela["贴现人"] = [rela["贴现人"]]
         if isinstance(rela["票据期限"],str):
             rela["票据期限"] = [rela["票据期限"]]
-        # 贴现人"我行"处理
+        # 2.贴现人"我行"处理
         discounters = []
         for e in rela["贴现人"]:
             if e == "我行":
@@ -145,6 +146,17 @@ class RelationExtractorManager:
             else:
                 discounters.append(e)
         rela["贴现人"] = discounters
+        # 3. 交易方向规整
+        txn_dir_desc = rela["交易方向"]
+        if re.search("[出卖]",txn_dir_desc):
+            rela["交易方向"] = "出票"
+        elif re.search("[买收入]",txn_dir_desc):
+            rela["交易方向"] = "收票"
+        # 4.补充票据种类
+        if len(rela["承兑人"]) > 0:
+            rela["票据类型"] = list(map(lambda x: x if x in ("商票","财司") else "银票", rela["承兑人"]))
+        else:
+            rela["票据类型"] = ["其他"]
         return rela
         
      

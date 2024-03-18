@@ -1,11 +1,15 @@
+import re
+
 from fastapi import FastAPI
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 from typing import List
 
+from inference import init_model, predict, init_manager, extract_relation as _extract_relation
 from config import Config
-from inference import init_model, predict, init_manager, extract_relation
+from utils.due_utilty import extract_dueItem_from_duetexts
+from utils.date_utitly import extract_month
 
 
 ## 输入参数格式定义
@@ -23,7 +27,7 @@ class LiteMessage(BaseModel):
 
 
 ## 输出响应格式定义
-    
+
 class SequenceTag(BaseModel):
     mark: str = Field(..., title="序列标注方式")
     preds: List[str] = Field(..., title="预测结果")
@@ -70,26 +74,40 @@ async def validation_exception_handler(request, exc):
     errMsg = ";".join(buff)
     return JSONResponse(status_code=418,content={"message":errMsg, "code":"0001"})
 
-@app.post("/name-entity-recognize",response_model=SequenceTagResponse)
-async def recognize_ner(msg: LiteMessage):
+@app.post("/bill/wechat-message/name-entity-recognize",response_model=SequenceTagResponse)
+async def recognize_entity(msg: LiteMessage):
     text = msg.content
     labels, seq_tags = predict(text)
     entities = SequenceTag(mark="BIOS",preds=seq_tags,entities=labels)
     return SequenceTagResponse(code="0000",message="success",entities=entities)
 
-@app.post("/extract-relation",response_model=RelationResponse)
-async def extract(msg:Message):
+@app.post("/bill/wechat-message/relation-extraction",response_model=RelationResponse)
+async def extract_relation(msg: Message):
     text = msg.publisher + " : " + msg.content
     labels, _ = predict(text)
-    extracts = extract_relation(text,labels)
+    extracts = _extract_relation(text,labels)
+    cur_mon = extract_month(msg.publishDate, msg.crawlTime)
     relations = []
     for item in extracts:
         relas = item["relations"]
-        # 补充其他要素
+        # 补充or调整 其他要素
         for rela in relas:
             rela['聊天群名称'] = msg.roomName
             rela["发布者微信名称"] = msg.publisher
             rela["发布时间"] = msg.publishDate
+            # 票据期限调整为 `数字+M` 格式
+            duetexts = rela["票据期限"]
+            due_item = extract_dueItem_from_duetexts(duetexts)
+            if due_item.due is not None:
+                rela["票据期限"] = ["%dM" % due_item.due]
+            elif isinstance(due_item.month, int) and isinstance(cur_mon, int):
+                if cur_mon > due_item.month:
+                    n = 12 - cur_mon + due_item.month
+                else:
+                    n = due_item.month - cur_mon
+                rela["票据期限"] = ["%dM"%n]
+            else:
+                rela["票据期限"] = duetexts
         relations.append(Relation(subContent=item["sub_text"],relaExtractorMethod=item["extractor"],results=relas))
     return RelationResponse(code="0000",message="success",relations=relations)
 
