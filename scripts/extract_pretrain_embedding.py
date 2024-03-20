@@ -39,14 +39,14 @@ def read_pretrainded_file(path):
 
 
 if __name__ == "__main__":
-    # path = 'pre_train_embedding/sgns.weibo.char'
-    # save_path = "../data/pretrained_embedding/sgns_weibo"
+    # path = 'data/pre_trained_embedding/sgns.weibo.char'
+    # save_path = "../billnerre/data/pretrained_embedding/sgns_weibo"
 
-    path = 'pretrained_embedding_tencent/tencent-ailab-embedding-zh-d100-v0.2.0-s.txt'
-    save_path = "../data/pretrained_embedding/tencent"
+    path = 'data/pre_trained_embedding/tencent-ailab-embedding-zh-d100-v0.2.0-s.txt'
+    save_path = "../billnerre/data/pretrained_embedding/tencent"
 
     vectors, char2id = read_pretrainded_file(path)
-    # 向量平均值作为未知字符的向量，
+    # 向量平均值作为未知字符的向量
     vectors.append(np.array(vectors).mean(axis=0))
     char2id['[UNK]'] = len(vectors) - 1
     vectors = np.array(vectors)

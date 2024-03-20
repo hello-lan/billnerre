@@ -36,7 +36,7 @@ class SequenceTag(BaseModel):
 
 class SequenceTagResponse(BaseModel):
     code: str = Field(..., title="成功失败代码")
-    message: str = Field(..., title="失败原因")
+    message: str = Field(..., title="成功失败信息")
     entities: SequenceTag = Field(..., title="识别的实体")
 
 
@@ -48,7 +48,7 @@ class Relation(BaseModel):
 
 class RelationResponse(BaseModel):
     code: str = Field(..., title="成功失败代码")
-    message: str = Field(..., title="失败原因")
+    message: str = Field(..., title="成功失败信息")
     relations: List[Relation] = Field(..., title="抽取的关系信息")
 
 
