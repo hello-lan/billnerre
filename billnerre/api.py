@@ -97,6 +97,8 @@ async def extract_relation(msg: Message):
             rela["发布时间"] = msg.publishDate
             # 票据期限调整为 `数字+M` 格式
             duetexts = rela["票据期限"]
+            if len(duetexts) == 0:
+                continue
             due_item = extract_dueItem_from_duetexts(duetexts)
             if due_item.due is not None:
                 rela["票据期限"] = [due_item.due]
