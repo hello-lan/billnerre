@@ -148,7 +148,9 @@ class RelationExtractorManager:
         rela["贴现人"] = discounters
         # 3. 交易方向规整
         txn_dir_desc = rela["交易方向"]
-        if re.search("[出卖]",txn_dir_desc):
+        if not isinstance(txn_dir_desc,str):
+            pass
+        elif re.search("[出卖]",txn_dir_desc):
             rela["交易方向"] = "出票"
         elif re.search("[买收入]",txn_dir_desc):
             rela["交易方向"] = "收票"

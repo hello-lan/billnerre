@@ -69,7 +69,7 @@ if __name__ == "__main__":
     init_model(Config)
     init_manager()
 
-    text = "爱猴主人上海南京 章琳洁 新 : 收3月电商，国股大商贴"
+    text = "出四季度\n 温州，民贴\n 烟台，城贴          \n北部湾，城贴          \n莱商，农贴          \n泰安，民营贴\n德州，城贴"
     items, tags = predict(text)
     result = extract_relation(text, items)
     print(result)
