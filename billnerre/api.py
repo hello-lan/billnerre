@@ -8,7 +8,7 @@ from typing import List
 
 from inference import init_model, predict, init_manager, extract_relation as _extract_relation
 from config import Config
-from utils.due_utilty import extract_dueItem_from_duetexts
+from utils.due_utilty import normlize_due
 from utils.date_utitly import extract_month
 
 
@@ -96,20 +96,8 @@ async def extract_relation(msg: Message):
             rela["发布者微信名称"] = msg.publisher
             rela["发布时间"] = msg.publishDate
             # 票据期限调整为 `数字+M` 格式
-            duetexts = rela["票据期限"]
-            if len(duetexts) == 0:
-                continue
-            due_item = extract_dueItem_from_duetexts(duetexts)
-            if due_item.due is not None:
-                rela["票据期限"] = [due_item.due]
-            elif isinstance(due_item.month, int) and isinstance(cur_mon, int):
-                if cur_mon > due_item.month:
-                    n = 12 - cur_mon + due_item.month
-                else:
-                    n = due_item.month - cur_mon
-                rela["票据期限"] = ["%dM"%n]
-            else:
-                rela["票据期限"] = duetexts
+            if len(rela["票据期限"]) > 0:
+                rela["票据期限"] = normlize_due(rela["票据期限"], cur_mon)
         relations.append(Relation(subContent=item["sub_text"],relaExtractorMethod=item["extractor"],results=relas))
     return RelationResponse(code="0000",message="success",relations=relations)
 

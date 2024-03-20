@@ -84,11 +84,25 @@ def extract_dueItem_from_duetext(txt):
     else:
         return DueItem()
     
-def extract_dueItem_from_duetexts(txts):
+def normlize_due(txts, cur):
+    """ 
+    txts: list[str], 模型抽取的原始`票据期限`实体
+    cur: int, 当前月份
+    """
     items = map(extract_dueItem_from_duetext,txts)
     months, dues = zip(*items)
-    month = max(months, key=lambda x:x if isinstance(x, (int,float)) else -float("inf"))
-    _due = max(dues, key=lambda x:x if isinstance(x, (int,float)) else -float("inf"))
-    due = "托收" if _due == 0 else "%M"%_due if isinstance(_due, (int,float)) else None
-    return DueItem(month=month,due=due)
+    due_1 = max(dues, key=lambda x:x if isinstance(x, (int,float)) else -float("inf"))
+    if isinstance(due_1, (int,float)):
+        due = "托收" if due_1 == 0 else "%dM"%due_1
+        return [due]
+    elif isinstance(cur, (int, float)):
+        month = max(months, key=lambda x: -float("inf") if not isinstance(x, (int,float)) else x - cur  if  x > cur  else x - cur + 12)  # +12是因为月份跨年
+        if isinstance(month, (int,float)):
+            due_2 = month - cur if month > cur else month - cur + 12
+            due = "托收" if due_2 == 0 else "%dM"%due_2
+            return [due]
+        else:
+            return txts
+    else:
+        return txts
     
