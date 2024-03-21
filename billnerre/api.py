@@ -74,14 +74,14 @@ async def validation_exception_handler(request, exc):
     errMsg = ";".join(buff)
     return JSONResponse(status_code=418,content={"message":errMsg, "code":"0001"})
 
-@app.post("/bill/wechat-message/name-entity-recognize",response_model=SequenceTagResponse)
+@app.post("/bill/message/name-entity-recognize",response_model=SequenceTagResponse)
 async def recognize_entity(msg: LiteMessage):
     text = msg.content
     labels, seq_tags = predict(text)
     entities = SequenceTag(mark="BIOS",preds=seq_tags,entities=labels)
     return SequenceTagResponse(code="0000",message="success",entities=entities)
 
-@app.post("/bill/wechat-message/relation-extraction",response_model=RelationResponse)
+@app.post("/bill/message/relation-extraction",response_model=RelationResponse)
 async def extract_relation(msg: Message):
     text = msg.publisher + " : " + msg.content
     labels, _ = predict(text)
